@@ -1,0 +1,92 @@
+#
+#                    ##        .            
+#              ## ## ##       ==            
+#           ## ## ## ##      ===            
+#       /""""""""""""""""\___/ ===        
+#  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~   
+#       \______ o          __/            
+#         \    \        __/             
+#          \____\______/                
+#
+
+# We define first our documentation data 
+# ---------------------------------------------------------------
+
+# Application name : <%= name %>
+# Application version : <%= version %>
+#
+# Description : <%= description %>
+# 
+# Date : <%= date %>
+# Copyright : <%= copyright %> <%= year %>
+
+
+# We define now our requirements properties
+# ---------------------------------------------------------------
+
+# Set from which package current application depends
+FROM <%= dockerfile.from.name %>:<%= dockerfile.from.version %>
+
+# Set defined labels
+LABEL application.name="<%= name %>"
+LABEL application.version="<%= version %>"
+LABEL application.author="<%= dockerfile.author %>"
+LABEL application.maintainers="<%= dockerfile.maintainers.join(", ") %>"
+<% _.forEach(dockerfile.labels, function(label) { %>LABEL <%- label.key %>="<%= label.value %>"
+<% });%>
+
+# Set defined environment property
+ENV APPLICATION_NAME="<%= name %>"
+ENV APPLICATION_VERSION="<%= version %>"
+<% _.forEach(dockerfile.environments, function(environment) { %>ENV <%= _.toUpper(_.snakeCase(environment.key)) %>="<%- environment.value %>"
+<% });%>
+
+# Set defined arguments
+<% _.forEach(dockerfile.argument, function(arg) { %>ARG <%= _.toUpper(arg.key) %>=<%- arg.value %>
+<% }); %>
+
+# We define now our copy/add elements instructions
+# ---------------------------------------------------------------
+
+<% _.forEach(dockerfile.copy, function(item) { %>COPY <%= item.source %> <%- item.destination %>
+<% }); %>
+
+# We create now our needed user
+# ---------------------------------------------------------------
+<% if (!_.isEmpty(dockerfile.user)) { %>
+# Create user with id : <%= dockerfile.user.id %> and append sudo access to created users
+RUN adduser -u <%= dockerfile.user.uuid %> --disabled-password --gecos '' <%= dockerfile.user.id %> && adduser <%= dockerfile.user.id %> sudo && \
+  echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers<% } %>
+
+# We define now our custom process commands
+# ---------------------------------------------------------------
+<% _.forEach(dockerfile.customs, function(custom) { %>
+<%  if (custom.comment) { %># <%= custom.comment %><% } %>
+<%- custom.command %> <%= custom.value %>
+<% }); %>
+
+# We define now our healthcheck process
+# ---------------------------------------------------------------
+<% if (!_.isEmpty(dockerfile.healthcheck)) { %>
+HEALTHCHECK <% if (dockerfile.healthcheck.command === "NONE") { %>NONE<% } else { %>--interval=<%= dockerfile.healthcheck.interval.value + dockerfile.healthcheck.interval.unit %> --timeout<%= dockerfile.healthcheck.timeout.value + dockerfile.healthcheck.timeout.unit %> --start-period=<%= dockerfile.healthcheck.startPeriod.value + dockerfile.healthcheck.startPeriod.unit %> --retries=<%= dockerfile.healthcheck.retries %> \
+  CMD <%= dockerfile.healthcheck.command %><% };
+}%>
+
+
+# We define now our last requirements properties
+# ---------------------------------------------------------------
+
+# Set defined exposed port
+<% if (!_.isEmpty(dockerfile.ports)) { %>EXPOSE <%= dockerfile.ports.join(' ') %><% } %>
+
+# Set defined exposed volumes
+<% _.forEach(dockerfile.volumes, function(volume) { %>VOLUME <%= volume %>
+<% }); %>
+
+# Set defined entrypoint values
+<% if (!_.isEmpty(dockerfile.entrypoints)) { %>ENTRYPOINT [ "<%= dockerfile.entrypoints.join('", "') %>" ]<% } %>
+
+# Set defined external command
+<% if (!_.isEmpty(dockerfile.commands)) { %>CMD [ "<%= dockerfile.commands.join('", "') %>" ]<% } %>
+
+# Builded with yocto-docker at <%= date %>

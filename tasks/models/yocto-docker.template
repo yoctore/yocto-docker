@@ -1,0 +1,25 @@
+{
+  "dockerfile" : {
+    "from" : {
+      "name" : "",
+      "version" : ""
+    },
+    "labels" : [],
+    "environments" : [],
+    "argument" : [],
+    "copy" : [],
+    "user" : {},
+    "customs" : [],
+    "ports" : [],
+    "volumes" : [],
+    "entrypoints" : [],
+    "commands" : [],
+    "maintainers" : [],
+    "healthcheck" : {}
+  },
+  "compose" : {
+    "development" : {},
+    "staging" : {},
+    "production" : {}
+  }
+}

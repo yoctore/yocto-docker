@@ -1,0 +1,10 @@
+version: '2'
+services:
+  "wms-file-watcher":
+    build:
+      args:
+        USER_UID: "48"
+    command: "-p"
+    volumes:
+      - /data/idlogistics/edi/logs:/var/www/idl-wms-file-watcher/logs
+      - /data/idlogistics/edi/input:/var/www/idl-wms-file-watcher/input

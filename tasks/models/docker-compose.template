@@ -1,0 +1,26 @@
+version: '2'
+services:
+  "<%= name %>":
+    build:
+      context: <%= context %>
+      dockerfile: <%= dockerfilePath %>
+    image: <%= imageName %>
+    container_name: <%= containerName %>
+    restart: "<%= restart %>"
+    logging:
+      driver: "<%= logging.driver %>"
+      options:
+        max-size: "<%= logging.options.maxSize %>"
+        max-file: "<%= logging.options.maxFile %>"
+    cpu_shares: <%= ressource.cpu.shares %>
+    mem_limit: "<%= ressource.memory.limit %>"
+    networks:
+      - proxy-tier
+    privileged: <%= privileged %=>
+    security_opt: [ <%= security.options.join('", "') ]
+    environment:
+      TZ: <%= env.timezone %>
+networks:
+  proxy-tier:
+    external:
+      name: proxy-network

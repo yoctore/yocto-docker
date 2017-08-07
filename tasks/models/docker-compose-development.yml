@@ -1,0 +1,7 @@
+version: '2'
+services:
+  "wms-file-watcher":
+    command: "-d"
+    volumes:
+      - /Users/mrobert/Documents/Projets/Yocto/clients/idlogistics/akanea-interface/logs:/var/www/idl-wms-file-watcher/logs
+      - /Users/mrobert/Documents/Projets/Yocto/clients/idlogistics/akanea-interface/input:/var/www/idl-wms-file-watcher/input

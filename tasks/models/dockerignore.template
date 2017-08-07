@@ -1,0 +1,7 @@
+.gitignore
+.gitattributes
+.dockerignore
+scripts/docker
+README.md
+CHANGELOG.md
+.yocto-docker.json
