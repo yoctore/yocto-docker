@@ -3,6 +3,14 @@
 var _   = require('lodash');
 var fs = require('fs');
 var timezone = require('moment-timezone');
+var yaml = require('yamljs');
+
+
+var nativeObject = yaml.load('./tasks/models/docker-compose-template.yml');
+console.log(nativeObject);
+
+//console.log(YAML.stringify(nativeObject, 4));
+
 
 console.log(timezone.tz.guess());
 return 0;

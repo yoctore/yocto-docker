@@ -1,26 +1,18 @@
 version: '2'
 services:
-  "<%= name %>":
+  service_name:
     build:
-      context: <%= context %>
-      dockerfile: <%= dockerfilePath %>
-    image: <%= imageName %>
-    container_name: <%= containerName %>
-    restart: "<%= restart %>"
+      context: "../../"
+      dockerfile: "./scripts/docker/Dockerfile"
+    image: ""
+    container_name: ""
+    restart: "on-failure:5"
     logging:
-      driver: "<%= logging.driver %>"
+      driver: "json-file"
       options:
-        max-size: "<%= logging.options.maxSize %>"
-        max-file: "<%= logging.options.maxFile %>"
-    cpu_shares: <%= ressource.cpu.shares %>
-    mem_limit: "<%= ressource.memory.limit %>"
-    networks:
-      - proxy-tier
-    privileged: <%= privileged %=>
-    security_opt: [ <%= security.options.join('", "') ]
-    environment:
-      TZ: <%= env.timezone %>
-networks:
-  proxy-tier:
-    external:
-      name: proxy-network
+        max-size: "100m"
+        max-file: "7"
+    cpu_shares: 90
+    mem_limit: "2g"
+    privileged: false
+    security_opt: [ "apparmor:docker-default", "no-new-privileges" ]

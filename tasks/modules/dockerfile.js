@@ -131,6 +131,11 @@ Dockerfile.prototype.build = function (config, grunt) {
 
     // do the maintainers unique
     config.dockerfile.maintainers = _.uniq(config.dockerfile.maintainers);
+    // by default we need to append -d -p -s command on docker file because it use on compose 
+    // by default build script
+    config.dockerfile.commands.push('-d', '-s', '-p');
+    // Do this array uniq
+    config.dockerfile.commands = _.uniq(config.dockerfile.commands);
   }
 
   // If we are here we need to process default labels to append
