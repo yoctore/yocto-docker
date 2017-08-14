@@ -13,23 +13,34 @@ var fs            = require('fs-extra');
 var async         = require('async');
 var dockerfile    = require('./modules/dockerfile');
 var dockercompose = require('./modules/dockercompose');
+var dockerscripts = require('./modules/dockerscripts');
 
 /**
  * Default export for grunt yocto-norme-plugin
  *
  * @param {string} grunt default grunt instance to use on current module
- * @return {function} hinter task module
  */
 module.exports = function (grunt) {
   // Require external module time grunt to get metrics on execution task
   timegrunt(grunt);
 
+  // save and normalize rules to be in correct order
+  var saved       = grunt.config().yoctodocker;
+  var newOrderer  = {}; 
+
+  // reset values
+  _.set(newOrderer, 'dockerfile', _.get(saved, 'dockerfile'));
+  _.set(newOrderer, 'compose', _.get(saved, 'compose'));
+  _.set(newOrderer, 'scripts', _.get(saved, 'scripts'));
+
+  // set new object
+  grunt.config('yoctodocker', newOrderer);
+
   // Save current path
   var cwd = process.cwd();
 
   // Default yocto config for jshint and jscs code style
-  var defaultOptions = {
-  };
+  var defaultOptions = {};
 
   // Define hooker for the last step of hinter
   hooker.hook(grunt.log.writeln(), [ 'success', 'fail' ], function (res) {
@@ -48,7 +59,9 @@ module.exports = function (grunt) {
       level : error ? 'warn' : 'ok',
       msg   : error ? 'Please correct your code !!! ' : 'Good Job. Padawan !!'
     };
-console.log(cMsg);
+
+    console.log(cMsg);
+
     // Is finish ??
     if (done || error) {
       /*
@@ -93,8 +106,9 @@ console.log(cMsg);
 
   // Create my main task to process dockerfile creation
   grunt.registerTask('yoctodocker:build-dockerfile', 'Main dockerfile creation process', function () {
-    // create an async process
+    // Create an async process
     var done = this.async();
+
     // Do the main process on a try catch process
 
     try {
@@ -103,175 +117,252 @@ console.log(cMsg);
 
       // Docker ignore exits ?
       if (!grunt.file.exists(dockerignore)) {
-        // lLog a message before create dockerignore file
+        // LLog a message before create dockerignore file
         grunt.log.warn('.dockerignore doesn\'t exists. We try to create it.');
 
         // Write the dockerignore template
         grunt.file.write(dockerignore,
           fs.readFileSync([ __dirname, 'models/dockerignore.template' ].join('/')));
 
-        // docker ignore exits ?
+        // Docker ignore exits ?
         if (!grunt.file.exists(dockerignore)) {
-          // throw an exception
-          throw 'Cannot create .dockerignore file.'; 
+          // Throw an exception
+          throw new Error('Cannot create .dockerignore file.');
         } else {
-          // log a success message
+          // Log a success message
           grunt.log.ok('Create .dockerignore was succeed.');
         }
       }
 
-      // get config file
+      // Get config file
       var config    = JSON.parse(fs.readFileSync(grunt.option('dconfig')));
-      // get builded config
+
+      // Get builded config
+
       config = dockerfile.build(config, grunt);
 
-      // config is invalid
+      // Config is invalid
       if (config === false) {
-        // throw an exception
-        throw 'Cannot process build of dockerfile. See error below.';
+        // Throw an exception
+        throw new Error('Cannot process build of dockerfile. See error below.');
       }
 
-      // get template file for dockerfile
+      // Get template file for dockerfile
       var template  = fs.readFileSync([
         __dirname, 'models/Dockerfile.template'
       ].join('/')).toString();
 
-      // set dockerfile on grunt option to use on next process
+      // Set dockerfile on grunt option to use on next process
       grunt.option('dockerfile', config);
 
-      // store destination path
+      // Store destination path
       var destination = path.resolve([ process.cwd(), 'scripts', 'docker', 'Dockerfile' ].join('/'));
+
       // Write content
       grunt.file.write(destination, _.template(template)(config));
 
-      // log success message
-      grunt.log.ok([ 'Dockerfile was properly created, and was store to', destination ].join(' '));
+      // Log success message
+      grunt.log.ok([ 'Dockerfile was properly created, and was store to', destination ].join(' '));
 
-      // call default callback
+      // Call default callback
       done();
     } catch (e) {
-      // log error
-      grunt.log.warn([ 'Cannot continue because an error occured :', e ].join(' '));
+      // Log error
+      grunt.log.warn([ 'Cannot continue because an error occured :', e.message ].join(' '));
 
-      // call default callback
+      // Call default callback
       done(false);
     }
   });
 
   // Create my main task to process dockerfile creation
   grunt.registerTask('yoctodocker:build-compose', 'Main compose creation process', function () {
-     // create an async process
+    // Create an async process
     var done = this.async();
 
     // Do the main process on a try catch process
     try {
-      // get config file
+      // Get config file
       var config = grunt.option('dockerfile');
 
-      // we need to prepare our config properly
+      // We need to prepare our config properly
       config = dockercompose.prepare(config, grunt);
 
-      // compose is defined ?
+      // Compose is defined ?
       if (_.has(config, 'compose')) {
-        // read each item and process the need action
+        // Read each item and process the need action
         async.eachOf(config.compose, function (value, key, next) {
-          // prepare destination path
+          // Prepare destination path
           var destination = path.resolve([ process.cwd(), 'scripts', 'docker', [
             'docker-compose', key !== 'common' ? [ '-', key, '.yml' ].join('') : '.yml' ].join('')
           ].join('/'));
 
-          // do the build process
+          // Do the build process
           if (dockercompose.build(config, grunt, key, value, destination)) {
-            // log ok message
+            // Change dockerfile property in grunt option
+            grunt.option('dockerfile', config);
+
+            // Log ok message
             grunt.log.ok([
-              'Create file for', key, 'was processed and store on', destination
+              'Create compose file for', key, 'was processed and store on', destination
             ].join(' '));
-            // do the normal process
+
+            // Do the normal process
             return next();
           }
-          // default invalid statement
+
+          // Default invalid statement
           return next(false);
         }, function (state) {
-          // call the default callback
+          // Call the default callback
           done(state);
         });
       } else {
-        // log nothing to process message
+        // Log nothing to process message
         grunt.log.ok('Compose has no rules defined. Skiping this process.');
+        // continue
+        done();
       }
     } catch (e) {
-      // log error
+      // Log error
       grunt.log.warn(e);
-      // close async process
+
+      // Close async process
       done(false);
     }
   });
 
   // Create my main task to process dockerfile creation
-  grunt.registerTask('yoctodocker:build-scripts', 'Main scripts creation process', function (target) {
-    console.log('yoctodocker:startscripts');
+  grunt.registerTask('yoctodocker:build-scripts', 'Main scripts creation process', function () {
+    // Create an async process
+    var done = this.async();
+
+    // storage value for common process
+    var storage = [];
+    // final destination path
+    var destination;
     // Do the main process on a try catch process
     try {
-      // get config file
-      var config = JSON.parse(fs.readFileSync(grunt.option('dconfig')));
+      // Get config file
+      var config = grunt.option('dockerfile');
+
+      // We need to prepare our config properly
+      config = dockerscripts.prepare(config, grunt);
+
+      // Compose is defined ?
+      if (!_.isEmpty(config)) {
+        // Read each item and process the need action
+        async.each(config, function (value, next) {
+          // Prepare destination path
+          destination = path.resolve([ process.cwd(), 'scripts', 'docker',
+            value.name !== 'common' ? [ 'build-compose', [ '-', value.name, '.sh' ].join('') ].join('') :
+              'start-application.sh'
+          ].join('/'));
+
+          // Do main build process
+          var build = dockerscripts.build(grunt, value, destination, storage);
+
+          // Do the build process
+          if (build) {
+            // Log ok message
+            grunt.log.ok([
+              'Create script files for', value.name, 'was processed and store on', destination
+            ].join(' '));
+            // save on main storage for newt common process
+            storage.push(build);
+            // Do the normal process
+            return next();
+          }
+
+          // Default invalid statement
+          return next(false);
+        }, function (state) {
+          // Log message
+          if (!state) {
+            grunt.log.ok(
+              'All data was processed. we need to build the main entrypoint of your application.');
+          }
+
+          // Call the default callback
+          done(state);
+        });
+      } else {
+        // Log nothing to process message
+        grunt.log.ok('Compose has no rules defined for scripts part. Skiping this process.');
+      }
     } catch (e) {
-      // log error
-      grunt.log.warn([ 'Cannot continue, an error occured :', e ].join(' '));
+      // Log error
+      grunt.log.warn(e);
+
+      // Close async process
+      done(false);
     }
   });
 
   // Register default plugin process
   grunt.registerMultiTask('yoctodocker', 'Manage and process code usage on yocto.', function () {
-    // we nees to process an async process
+    // We nees to process an async process
     var done = this.async();
-    // defined path of yocto config file
+
+    // Defined path of yocto config file
     var config = [ process.cwd(), '.yocto-docker.json' ].join('/');
 
     /**
      * Internal build method to prcess all build process
      *
-     * @param {Function} done callback method to call at the end of process
+     * @param {Function} state if true we start the current process, otherwise we skip
+     * @param {String} target current process name
+     * @return {Function} current async callback
      */
     function build (state, target) {
-      // dispatch content
+      // Dispatch content
       if (state === true) {
-        // set options for current task
+        // Set options for current task
         grunt.option('dconfig', config);
 
-        // try to run given task
-        grunt.task.run([ 'yoctodocker:build', target ].join('-'));
-        // call the default callback and keep the previous process keep the lead
-        return done();
+        // Try to run given task
+        if (grunt.task.run([ 'yoctodocker:build', target ].join('-'))) {
+          // Default statement
+          return done();
+        }
       }
+
+      // Log warn message
+      grunt.log.warn([ 'Feature', target, 'is disabled. skipping this process' ].join(' '));
+
+      // Call the default callback and keep the previous process keep the lead
+      return done();
     }
 
     // Try to create create needed directory
     fs.ensureDirSync(path.resolve([ process.cwd(), 'scripts', 'docker' ].join('/')))
 
-    // log info message
+    // Log info message
     grunt.log.ok([ 'Preparing build for >>', this.target ].join(' '));
 
-    // first we need to check if current config file is defined
+    // First we need to check if current config file is defined
     if (!grunt.file.exists(config)) {
-      // prompt message
+      // Prompt message
       inquirer.prompt({
-        message : 'Your docker config file doesn\'t exists. We will create it. Are you OK ?', 
+        message : 'Your docker config file doesn\'t exists. We will create it. Are you OK ?',
         name    : 'create',
         type    : 'confirm'
       }).then(function (answers) {
-        // user is ok ?
+        // User is ok ?
         if (answers.create) {
-          // write
+          // Write
           grunt.file.write(config,
             fs.readFileSync([ __dirname, 'models/yocto-docker.template' ].join('/')));
-          // do the main process
+
+          // Do the main process
           build.call(this, this.data, this.target);
         }
-        // in other case return stop
+
+        // In other case return stop
         return done();
       }.bind(this))
     } else {
-      // do the main process
+      // Do the main process
       build.call(this, this.data, this.target);
     }
   });

@@ -1,0 +1,18 @@
+#!/bin/bash
+<% if (!_.isEmpty(common.value)) { %>
+# we define here <%= common.name %> vars
+<% _.forEach(common.value, function (v) { %><%= v.key %>="<%= v.value %>"
+<% }) } %>
+<% _.forEach(env, function (ev) {
+  if (!_.isEmpty(ev.value)) { %>
+# we define here vars for <%= ev.name %> mode
+if [ "${1}" = "-<%= ev.command %>" ]; then<% _.each(ev.value, function (v) { %>
+  <%= v.key %>="<%= v.value %>"<% }) %>
+fi
+<% } })%>
+
+# Preapre the main node command line to start our apps
+<% if (!_.isEmpty(all)) { %><%= all.join(' ') %> \<% } %>
+pm2 start <%= main %> --name "<%= name %>" --merge-logs \
+--max-memory-restart "<%= runtime.memory_limit %>M" --no-daemon \
+--node-args="--max-old-space-size=<%= runtime.memory_limit %>" -i <%= runtime.nb_cores %>

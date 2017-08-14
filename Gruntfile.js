@@ -8,16 +8,24 @@ module.exports = function (grunt) {
 
     // Configuration to be run (and then tested).
     yoctodocker : {
-      dockerfile : true,
       compose    : true,
+      dockerfile : true,
       scripts    : true
+    },
+    yoctohint : {
+      node : [
+        'tasks/yoctodocker.js',
+        'Gruntfile.js'
+      ]
     }
   });
 
   // Actually load this plugin's task(s).
   grunt.loadTasks('tasks');
+  //grunt.loadNpmTasks('yocto-hint');
 
-  // Load npm task
+  // Register task
   grunt.registerTask('test', [ 'yoctodocker' ]);
-  grunt.registerTask('default', [ 'test' ]);
+  grunt.registerTask('hint', [ 'yoctohint' ]);
+  grunt.registerTask('default', [ 'hint', 'test' ]);
 };

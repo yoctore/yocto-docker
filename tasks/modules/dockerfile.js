@@ -77,6 +77,13 @@ Dockerfile.prototype.getSchema = function () {
   }).unknown();
 }
 
+/**
+ * Build the current dockerfile object, and store content on destination path
+ *
+ * @param {Object} config current config object to prepare for build process
+ * @param {Object} grunt current grunt instance
+ * @return {Boolean} true in case of success, false otherwise
+ */
 Dockerfile.prototype.build = function (config, grunt) {
   // we need first validate the json format for dockerfile config
   var validate = joi.validate(config,  this.getSchema());
@@ -116,6 +123,7 @@ Dockerfile.prototype.build = function (config, grunt) {
   ].join(' '));
   _.set(config, 'year', moment().format('YYYY'));
   _.set(config, 'date', moment().format('YYYY/MM/DD HH:mm:ss ZZ'));
+  _.set(config, 'main', grunt.config('pkg.main') || 'index.js');
 
   // only if author is not set
   if (config.dockerfile) {
@@ -131,11 +139,15 @@ Dockerfile.prototype.build = function (config, grunt) {
 
     // do the maintainers unique
     config.dockerfile.maintainers = _.uniq(config.dockerfile.maintainers);
-    // by default we need to append -d -p -s command on docker file because it use on compose 
-    // by default build script
-    config.dockerfile.commands.push('-d', '-s', '-p');
+    // by default we need to append -d -p -s -q command on docker file because it use on compose 
+    // by default for build script
+    config.dockerfile.commands.push('-d', '-s', '-p', '-q');
     // Do this array uniq
     config.dockerfile.commands = _.uniq(config.dockerfile.commands);
+    // add default script to entry point
+    config.dockerfile.entrypoints = _.uniq(_.flatten([
+      '/bin/bash', 'scripts/start-application.sh', config.dockerfile.entrypoints
+    ]));
   }
 
   // If we are here we need to process default labels to append

@@ -11,7 +11,7 @@ console.log(nativeObject);
 
 //console.log(YAML.stringify(nativeObject, 4));
 
-
+var timezone = require('moment-timezone');
 console.log(timezone.tz.guess());
 return 0;
 

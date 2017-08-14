@@ -8,7 +8,7 @@ var path          = require('path');
 var timezone      = require('moment-timezone');
 
 /**
- * Main dockercompose factory. Process all action for dockerfile creation
+ * Main dockercompose factory. Process all action for dockercompose creation
  */
 function DockerCompose () {}
 
@@ -24,11 +24,13 @@ DockerCompose.prototype.getSchema = function () {
     compose : joi.object().optional().keys({
       common : joi.object().optional().keys({}).default({}).unknown(),
       development : joi.object().optional().keys({}).default({}).unknown(),
+      qa : joi.object().optional().keys({}).default({}).unknown(),
       staging : joi.object().optional().keys({}).default({}).unknown(),
       production : joi.object().optional().keys({}).default({}).unknown()
     }).unknown().default({
       common : {},
       development : {},
+      qa : {},
       staging : {},
       production : {}
     })
@@ -99,7 +101,7 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
   ].join('/')));
 
   // is development, staging or production key ? in this case we need to append default command
-  if (_.includes([ 'development', 'staging', 'production' ], key)) {
+  if (key !== 'common') {
     // ressign value
     _.set(template, 'services.service_name.command', [ '-', _.first(key) ].join(''));
   }
@@ -119,7 +121,7 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
 
   // Only if item is valid
   if (!_.isUndefined(item) && _.isObject(item) && !_.isEmpty(item)) {
-    // ressign value
+    // reassign value
     _.set(template.services, 'service_name', item);
     // In normal/other case we try to merge given config from current
     _.mergeWith(template, value, function (objValue, srcValue) {
