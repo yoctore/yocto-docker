@@ -7,12 +7,8 @@ module.exports = function (grunt) {
     pkg : grunt.file.readJSON('package.json'),
 
     // Configuration to be run (and then tested).
-    yoctodocker : {
-      compose    : true,
-      dockerfile : true,
-      scripts    : true
-    },
-    yoctohint : {
+    yoctodocker : {},
+    yoctohint   : {
       node : [
         'tasks/yoctodocker.js',
         'Gruntfile.js'
@@ -22,7 +18,7 @@ module.exports = function (grunt) {
 
   // Actually load this plugin's task(s).
   grunt.loadTasks('tasks');
-  //grunt.loadNpmTasks('yocto-hint');
+  grunt.loadNpmTasks('yocto-hint');
 
   // Register task
   grunt.registerTask('test', [ 'yoctodocker' ]);

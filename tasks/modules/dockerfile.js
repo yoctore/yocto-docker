@@ -16,7 +16,7 @@ function Dockerfile () {}
  *
  * @return {Object} validation schema to use for validation
  */
-Dockerfile.prototype.getSchema = function () {
+Dockerfile.prototype.getSchema = function (exists) {
   // Default schema to use for validation
   return joi.object().required().keys({
     dockerfile : joi.object().required().keys({
@@ -73,6 +73,13 @@ Dockerfile.prototype.getSchema = function () {
       volumes : joi.array().optional().items(joi.string().optional().empty()).default([]),
       entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([]),
       commands : joi.array().optional().items(joi.string().optional().empty()).default([]),
+      runtime  : joi.object().optional().keys({
+        nb_cores     : joi.number().optional().min(1).default(1),
+        memory_limit : joi.number().optional().min(2048).default(2048)
+      }).default({
+        nb_cores     : 1,
+        memory_limit : 2048
+      })
     })
   }).unknown();
 }

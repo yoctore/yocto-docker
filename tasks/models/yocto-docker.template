@@ -19,7 +19,15 @@
   },
   "compose" : {
     "development" : {},
+    "qa" : "",
     "staging" : {},
     "production" : {}
+  },
+  "scripts" : {
+    "common" : {},
+    "development" : {},
+    "qa" : {},
+    "production" : {},
+    "staging" : {}
   }
 }

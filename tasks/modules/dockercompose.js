@@ -74,7 +74,7 @@ DockerCompose.prototype.prepare = function (config, grunt) {
  */
 DockerCompose.prototype.build = function (config, grunt, key, value, destination) {
   // log process message
-  grunt.log.ok([ 'We try to process compose for', key, 'environment' ].join(' '));
+  grunt.log.debug([ 'We try to process compose for', key, 'environment' ].join(' '));
 
   // we need first validate the json format for dockerfile config
   var validate = joi.validate(config, this.getSchema());

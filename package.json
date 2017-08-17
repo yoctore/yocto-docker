@@ -1,6 +1,6 @@
 {
   "name": "yocto-docker",
-  "description": "An utility tools to create our docker configuration files.",
+  "description": "An utility tools to create our docker configuration files for yocto.re team usage",
   "version": "1.0.0",
   "private": true,
   "author": {
@@ -64,6 +64,6 @@
     "yocto-hint": "^2.0.2"
   },
   "devDependencies": {
-    "yocto-hint": "^2.0.1"
+    "yocto-hint": "^2.0.3"
   }
 }

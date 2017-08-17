@@ -7,7 +7,6 @@ var path          = require('path');
 var semver        = require('semver');
 var timegrunt     = require('time-grunt');
 var treeify       = require('treeify');
-var os            = require('os');
 var inquirer      = require('inquirer');
 var fs            = require('fs-extra');
 var async         = require('async');
@@ -24,83 +23,46 @@ module.exports = function (grunt) {
   // Require external module time grunt to get metrics on execution task
   timegrunt(grunt);
 
-  // save and normalize rules to be in correct order
-  var saved       = grunt.config().yoctodocker;
-  var newOrderer  = {}; 
+  // Default config property
+  var defaultConfig = {};
 
-  // reset values
-  _.set(newOrderer, 'dockerfile', _.get(saved, 'dockerfile'));
-  _.set(newOrderer, 'compose', _.get(saved, 'compose'));
-  _.set(newOrderer, 'scripts', _.get(saved, 'scripts'));
+  // Append value to process item on correct order
+  _.set(defaultConfig, 'dockerfile', true);
+  _.set(defaultConfig, 'compose', true);
+  _.set(defaultConfig, 'scripts', true);
 
-  // set new object
-  grunt.config('yoctodocker', newOrderer);
+  // Storage for treeify render on the last step
+  var gstorage =  {};
+
+  // Append value to process item on correct order
+  _.set(gstorage, 'dockerfile', {});
+  _.set(gstorage, 'compose', {});
+  _.set(gstorage, 'scripts', {});
+
+  // Enabled all features
+  grunt.config('yoctodocker', defaultConfig);
 
   // Save current path
   var cwd = process.cwd();
 
-  // Default yocto config for jshint and jscs code style
-  var defaultOptions = {};
+  /**
+   * Utility function to store item on storage
+   *
+   * @param {String} source property wanted for push data
+   * @param {String} path string property key to use on source property
+   * @param {Boolean} value true in case of success false otherwise
+   */
+  function storeForTree (source, path, value) {
+    // global process
+    gstorage[source][path] = value === true ? chalk.green('✓') : chalk.red('✖');
+  }
 
   // Define hooker for the last step of hinter
-  hooker.hook(grunt.log.writeln(), [ 'success', 'fail' ], function (res) {
-    // Check done or aborted
-    var done    = res === 'Done, without errors.' || 'Done.';
-    var warning = res === 'Done, but with warnings.';
-    var aborted = res === 'Aborted due to warnings.';
-    var error   = warning || aborted;
-    var state   = error ? 'error' : 'success';
-    var arts;
-    var artPath;
-    var sMsg;
-
-    // Default message config
-    var cMsg = {
-      level : error ? 'warn' : 'ok',
-      msg   : error ? 'Please correct your code !!! ' : 'Good Job. Padawan !!'
-    };
-
-    console.log(cMsg);
-
-    // Is finish ??
-    if (done || error) {
-      /*
-      // Main try catch to any errors
-      try {
-        // Get file path of art path
-        artPath = [ __dirname, 'art', 'art.json' ].join('/');
-
-        // Getting file exists ?
-        if (!grunt.file.exists(artPath)) {
-          throw [ 'art config file"', artPath, '"not found.' ].join(' ');
-        }
-
-        // Select correct arts file content to print
-        arts = JSON.parse(grunt.file.read(artPath));
-
-        // Define end state
-        sMsg = {
-          color : error ? 'red' : 'green',
-          file  : _.map(arts[state], function (art) {
-            return [ __dirname, 'art', state, art ].join('/');
-          })
-        };
-
-        // Build message file
-        sMsg.file = sMsg.file[_.random(0, sMsg.file.length - 1)];
-
-        // Log message to console
-        console.log(chalk[sMsg.color](grunt.file.read(sMsg.file)));
-
-        // Print grade
-        console.log(chalk[sMsg.color]([ 'Your grade is : ', globalGrade, '/20' ].join('')));
-      } catch (e) {
-        // Log exeption, but it produces by art config
-        grunt.log.warn([ 'Plugin error.', e ].join(' '));
-
-        // Need to log end message with custom param
-        grunt.log[cMsg.level](cMsg.msg);
-      }*/
+  hooker.hook(grunt.log.writeln(), [ 'success', 'fail' ], function () {
+    // Only on this case
+    if (grunt.hookname === 'yocto-docker') {
+      console.log(chalk.underline('Tree view state of generated file'));
+      console.log(treeify.asTree(gstorage, true));
     }
   });
 
@@ -161,8 +123,17 @@ module.exports = function (grunt) {
       // Write content
       grunt.file.write(destination, _.template(template)(config));
 
+      // File exists && file is not empty ?
+      var state = grunt.file.exists(destination) &&
+        !_.isEmpty(fs.readFileSync(destination).toString());
+
       // Log success message
-      grunt.log.ok([ 'Dockerfile was properly created, and was store to', destination ].join(' '));
+      grunt.log.ok([
+        'Dockerfile was', state ? '' : 'not', 'properly created, and was store to', destination
+      ].join(' '));
+
+      // Store dockerfile path to storage process
+      storeForTree('dockerfile', destination, state);
 
       // Call default callback
       done();
@@ -207,9 +178,15 @@ module.exports = function (grunt) {
               'Create compose file for', key, 'was processed and store on', destination
             ].join(' '));
 
+            // Store compose path to storage process
+            storeForTree('compose', destination, true);
+
             // Do the normal process
             return next();
           }
+
+          // Store compose path to storage process
+          storeForTree('compose', destination, false);
 
           // Default invalid statement
           return next(false);
@@ -220,7 +197,8 @@ module.exports = function (grunt) {
       } else {
         // Log nothing to process message
         grunt.log.ok('Compose has no rules defined. Skiping this process.');
-        // continue
+
+        // Continue
         done();
       }
     } catch (e) {
@@ -237,11 +215,14 @@ module.exports = function (grunt) {
     // Create an async process
     var done = this.async();
 
-    // storage value for common process
+    // Storage value for common process
     var storage = [];
-    // final destination path
+
+    // Final destination path
     var destination;
+
     // Do the main process on a try catch process
+
     try {
       // Get config file
       var config = grunt.option('dockerfile');
@@ -253,6 +234,8 @@ module.exports = function (grunt) {
       if (!_.isEmpty(config)) {
         // Read each item and process the need action
         async.each(config, function (value, next) {
+          // If (value.name !== 'common)
+
           // Prepare destination path
           destination = path.resolve([ process.cwd(), 'scripts', 'docker',
             value.name !== 'common' ? [ 'build-compose', [ '-', value.name, '.sh' ].join('') ].join('') :
@@ -268,21 +251,23 @@ module.exports = function (grunt) {
             grunt.log.ok([
               'Create script files for', value.name, 'was processed and store on', destination
             ].join(' '));
-            // save on main storage for newt common process
+
+            // Save on main storage for newt common process
             storage.push(build);
+
+            // Store scripts path to storage process
+            storeForTree('scripts', destination, true);
+
             // Do the normal process
             return next();
           }
 
+          // Store scripts path to storage process
+          storeForTree('scripts', destination, true);
+
           // Default invalid statement
           return next(false);
         }, function (state) {
-          // Log message
-          if (!state) {
-            grunt.log.ok(
-              'All data was processed. we need to build the main entrypoint of your application.');
-          }
-
           // Call the default callback
           done(state);
         });
@@ -315,6 +300,9 @@ module.exports = function (grunt) {
      * @return {Function} current async callback
      */
     function build (state, target) {
+      // Set current hookname
+      grunt.hookname = 'yocto-docker';
+
       // Dispatch content
       if (state === true) {
         // Set options for current task

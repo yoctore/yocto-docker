@@ -86,7 +86,7 @@ DockerScripts.prototype.prepare = function (config, grunt) {
  */
 DockerScripts.prototype.build = function (grunt, value, destination, storage) {
   // log process message
-  grunt.log.ok([
+  grunt.log.debug([
     'We try to process scripts for', value.name || 'unknown', 'environment'
   ].join(' '));
 
@@ -150,9 +150,6 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
 
     // set command for scripts process
     _.set(validate.value, 'command', _.first(validate.value.name));
-
-    // default process statement
-    return grunt.file.exists(destination) ? validate.value : false;
   } else {
     // prepare all value for script build
     var all = _.flattenDeep(_.map(storage, function (s) {
@@ -173,7 +170,7 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
     var difference = _.difference(all, common);
 
     // add difference key to commone value
-    validate.value.value = _.flattenDeep([
+    validate.value.value = _.uniqBy(_.flattenDeep([
       validate.value.value, _.map(difference, function (d) {
         // obj to use
         var obj = {}
@@ -185,8 +182,7 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
         // return build obj
         return obj;
       })
-    ]);
-    //console.log(validate.value);
+    ]), 'key');
 
     // normalize all storage
     all = _.flattenDeep(_.map(validate.value.value, function (v) {
@@ -201,13 +197,14 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
       env     : storage,
       main    : grunt.option('dockerfile').main,
       name    : grunt.option('dockerfile').name,
-      runtime : grunt.option('dockerfile').runtime || {}
+      runtime : grunt.option('dockerfile').dockerfile.runtime || {}
     }));
   }
 
-  // default statement
-  return validate.value;
-
+  // in all case ce change the mode of destination file
+  fs.chmodSync(destination, '744');
+  // default process statement
+  return grunt.file.exists(destination) ? validate.value : false;
 };
 
 // Default export
