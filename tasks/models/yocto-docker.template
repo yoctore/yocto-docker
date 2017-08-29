@@ -1,7 +1,7 @@
 {
   "dockerfile" : {
     "from" : {
-      "name" : "",
+      "name" : "node",
       "version" : ""
     },
     "labels" : [],
@@ -19,7 +19,7 @@
   },
   "compose" : {
     "development" : {},
-    "qa" : "",
+    "qa" : {},
     "staging" : {},
     "production" : {}
   },

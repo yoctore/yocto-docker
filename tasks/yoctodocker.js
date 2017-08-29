@@ -10,6 +10,7 @@ var treeify       = require('treeify');
 var inquirer      = require('inquirer');
 var fs            = require('fs-extra');
 var async         = require('async');
+var request       = require('request');
 var dockerfile    = require('./modules/dockerfile');
 var dockercompose = require('./modules/dockercompose');
 var dockerscripts = require('./modules/dockerscripts');
@@ -100,7 +101,6 @@ module.exports = function (grunt) {
       var config    = JSON.parse(fs.readFileSync(grunt.option('dconfig')));
 
       // Get builded config
-
       config = dockerfile.build(config, grunt);
 
       // Config is invalid
@@ -338,12 +338,48 @@ module.exports = function (grunt) {
       }).then(function (answers) {
         // User is ok ?
         if (answers.create) {
-          // Write
-          grunt.file.write(config,
-            fs.readFileSync([ __dirname, 'models/yocto-docker.template' ].join('/')));
+          // Log info message
+          grunt.log.ok('Please wait we try to retreive node version from nodejs repository');
 
-          // Do the main process
-          build.call(this, this.data, this.target);
+          // Get the manifest from node repository
+          return request.get('https://nodejs.org/dist/index.json', function (error, response, body) {
+            // Has error ?
+            if (error) {
+              // In this case we log an error message
+              grunt.log.warn([
+                'Cannot retreive nodejs version from nodejs repository :', error, response
+              ].join(''));
+            } else {
+              // Update version values
+              grunt.option('nodeversion', _.first(_.compact(_.map(JSON.parse(body), function (item) {
+                // In case of item is not an LTS version
+                if (_.isBoolean(item.lts)) {
+                  // Break the map process
+                  return false;
+                }
+
+                // Default statement
+                return item.version.replace('v', '')
+              }))));
+            }
+
+            // Get content
+            var content = JSON.parse(fs.readFileSync([
+              __dirname, 'models/yocto-docker.template'
+            ].join('/')).toString());
+
+            // Change node version
+            content.dockerfile.from.version = grunt.option('nodeversion') || '';
+
+            // Write new content
+            grunt.file.write(config, JSON.stringify(content, null, 2));
+
+            // Do the main process
+            build.call(this, this.data, this.target);
+
+            // Default statement
+            return done();
+          }.bind(this));
         }
 
         // In other case return stop
