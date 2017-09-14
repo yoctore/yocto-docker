@@ -1,16 +1,19 @@
 'use strict';
 
 var _             = require('lodash');
-var moment        = require('moment');
 var joi           = require('joi');
 var path          = require('path');
-var timezone      = require('moment-timezone');
 var fs            = require('fs');
 
 /**
  * Main dockerscripts factory. Process all action for dockerscripts creation
  */
-function DockerScripts () {}
+function DockerScripts () {
+  /**
+   * Default name
+   */
+  this.name = 'docker-scripts';
+}
 
 /**
  * Get default schema for validation process
@@ -21,19 +24,19 @@ DockerScripts.prototype.getSchema = function () {
   // Default schema to use for validation
   return joi.object().required().keys({
     dockerfile : joi.object().required().keys({}).unknown(),
-    compose : joi.object().required().keys({}).unknown(),
-    scripts : joi.object().optional().keys({
-      common : joi.object().optional().keys({}).default({}).unknown(),
+    compose    : joi.object().required().keys({}).unknown(),
+    scripts    : joi.object().optional().keys({
+      common      : joi.object().optional().keys({}).default({}).unknown(),
       development : joi.object().optional().keys({}).default({}).unknown(),
-      qa : joi.object().optional().keys({}).default({}).unknown(),
-      staging : joi.object().optional().keys({}).default({}).unknown(),
-      production : joi.object().optional().keys({}).default({}).unknown()
+      qa          : joi.object().optional().keys({}).default({}).unknown(),
+      staging     : joi.object().optional().keys({}).default({}).unknown(),
+      production  : joi.object().optional().keys({}).default({}).unknown()
     }).unknown().default({
-      common : {},
+      common      : {},
       development : {},
-      qa : {},
-      staging : {},
-      production : {}
+      qa          : {},
+      staging     : {},
+      production  : {}
     })
   }).unknown();
 };
@@ -46,33 +49,31 @@ DockerScripts.prototype.getSchema = function () {
  * @return {Boolean|Object} false in case of failure an object in case of success
  */
 DockerScripts.prototype.prepare = function (config, grunt) {
-  // we need first validate the json format for dockerfile config
+  // We need first validate the json format for dockerfile config
   var validate = joi.validate(config, this.getSchema());
 
-  // has error ?
+  // Has error ?
   if (!_.isNull(validate.error)) {
-    // log an error message
+    // Log an error message
     grunt.log.warn([
       'Cannot prepare config content for scripts process :', validate.error
     ].join(' '));
-    // default invalid statement
+
+    // Default invalid statement
     validate.value = false;
   }
 
-  // default statement
-  return _.sortBy(_.map(validate.value.scripts, function(value, key) {
-    // default map statement
+  // Default statement
+  return _.sortBy(_.map(validate.value.scripts, function (value, key) {
+    // Default map statement
     return {
-      name : key,
+      name  : key,
       value : value
     }
   }), function (order) {
-    // default order statement
-    return [ order.name === 'common', order.name === order.name ];
+    // Default order statement
+    return [ order.name === 'common' ];
   });
-
-  // default statement
-  return validate.value;
 }
 
 /**
@@ -85,20 +86,20 @@ DockerScripts.prototype.prepare = function (config, grunt) {
  * @return {Boolean} true in case of success, false otherwise
  */
 DockerScripts.prototype.build = function (grunt, value, destination, storage) {
-  // log process message
+  // Log process message
   grunt.log.debug([
     'We try to process scripts for', value.name || 'unknown', 'environment'
   ].join(' '));
 
-  // we need first validate the json format for dockerfile config
+  // We need first validate the json format for dockerfile config
   var validate = joi.validate(value, joi.object().required().keys({
     name  : joi.string().required().empty(),
     value : joi.object().required().unknown()
   }));
 
-  // result is valid ?
+  // Result is valid ?
   if (!_.isNull(validate.error)) {
-    // log invalid message
+    // Log invalid message
     grunt.log.warn([
       'Cannot build the dockerscripts for', value.name || 'unknown' ,
       'because schema is invalid :', validate.error
@@ -108,8 +109,8 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
     return false;
   }
 
-  // re use config
-  //config = validate.value;
+  // Re use config
+  // config = validate.value;
 
   // No try to load template file
   var template = fs.readFileSync(path.resolve([
@@ -126,71 +127,73 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
    * @param {Object} value value to remap
    * @return {Object} remapped object
    */
-  function remapObj(value) {
-    // default statement
+  function remapObj (value) {
+    // Default statement
     return _.map(value, function (v, k) {
-      // obj to use
+      // Obj to use
       var obj = {}
-      // set key
+
+      // Set key
+
       _.set(obj, 'key', k);
       _.set(obj, 'value', v);
-  
-      // default statement
+
+      // Default statement
       return obj;
     });
   }
 
-  // remap value
+  // Remap value
   validate.value.value = remapObj(value.value);
 
-  // if is not common we need to do a specific process
+  // If is not common we need to do a specific process
   if (validate.value.name !== 'common') {
-    // if we are here we need to build properly scripts file for each given env
+    // If we are here we need to build properly scripts file for each given env
     grunt.file.write(destination, _.template(template)(validate.value));
 
-    // set command for scripts process
+    // Set command for scripts process
     _.set(validate.value, 'command', _.first(validate.value.name));
   } else {
-    // prepare all value for script build
+    // Prepare all value for script build
     var all = _.flattenDeep(_.map(storage, function (s) {
-      // default internal statement
+      // Default internal statement
       return _.map(s.value, function (v) {
-        // default statement
+        // Default statement
         return v.key;
       })
     }));
 
-    // push value
+    // Push value
     var common = _.flattenDeep(_.map(validate.value.value, function (v) {
-      // default statement
+      // Default statement
       return v.key;
     }));
 
-    // get here difference key to be sure to have all key define on common property
+    // Get here difference key to be sure to have all key define on common property
     var difference = _.difference(all, common);
 
-    // add difference key to commone value
+    // Add difference key to commone value
     validate.value.value = _.uniqBy(_.flattenDeep([
       validate.value.value, _.map(difference, function (d) {
-        // obj to use
+        // Obj to use
         var obj = {}
 
-        // set key
+        // Set key
         _.set(obj, 'key', d);
         _.set(obj, 'value', '')
 
-        // return build obj
+        // Return build obj
         return obj;
       })
     ]), 'key');
 
-    // normalize all storage
+    // Normalize all storage
     all = _.flattenDeep(_.map(validate.value.value, function (v) {
-      // default statement
+      // Default statement
       return [ v.key, '="${', v.key, '}"' ].join('');
     }));
 
-    // save file on fs
+    // Save file on fs
     grunt.file.write(destination, _.template(template)({
       all     : all,
       common  : validate.value,
@@ -201,9 +204,10 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
     }));
   }
 
-  // in all case ce change the mode of destination file
+  // In all case ce change the mode of destination file
   fs.chmodSync(destination, '744');
-  // default process statement
+
+  // Default process statement
   return grunt.file.exists(destination) ? validate.value : false;
 };
 

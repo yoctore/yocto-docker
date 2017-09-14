@@ -1,7 +1,6 @@
 'use strict';
 
 var _             = require('lodash');
-var moment        = require('moment');
 var joi           = require('joi');
 var yaml          = require('yamljs');
 var path          = require('path');
@@ -10,7 +9,12 @@ var timezone      = require('moment-timezone');
 /**
  * Main dockercompose factory. Process all action for dockercompose creation
  */
-function DockerCompose () {}
+function DockerCompose () {
+  /**
+   * Default name
+   */
+  this.name = 'docker-compose';
+}
 
 /**
  * Get default schema for validation process
@@ -21,18 +25,18 @@ DockerCompose.prototype.getSchema = function () {
   // Default schema to use for validation
   return joi.object().required().keys({
     dockerfile : joi.object().required().keys({}).unknown(),
-    compose : joi.object().optional().keys({
-      common : joi.object().optional().keys({}).default({}).unknown(),
+    compose    : joi.object().optional().keys({
+      common      : joi.object().optional().keys({}).default({}).unknown(),
       development : joi.object().optional().keys({}).default({}).unknown(),
-      qa : joi.object().optional().keys({}).default({}).unknown(),
-      staging : joi.object().optional().keys({}).default({}).unknown(),
-      production : joi.object().optional().keys({}).default({}).unknown()
+      qa          : joi.object().optional().keys({}).default({}).unknown(),
+      staging     : joi.object().optional().keys({}).default({}).unknown(),
+      production  : joi.object().optional().keys({}).default({}).unknown()
     }).unknown().default({
-      common : {},
+      common      : {},
       development : {},
-      qa : {},
-      staging : {},
-      production : {}
+      qa          : {},
+      staging     : {},
+      production  : {}
     })
   }).unknown();
 };
@@ -45,20 +49,21 @@ DockerCompose.prototype.getSchema = function () {
  * @return {Boolean|Object} false in case of failure an object in case of success
  */
 DockerCompose.prototype.prepare = function (config, grunt) {
-  // we need first validate the json format for dockerfile config
+  // We need first validate the json format for dockerfile config
   var validate = joi.validate(config, this.getSchema());
 
-  // has error ?
+  // Has error ?
   if (!_.isNull(validate.error)) {
-    // log an error message
+    // Log an error message
     grunt.log.warn([
       'Cannot prepare config content for compose process :', validate.error
     ].join(' '));
-    // default invalid statement
+
+    // Default invalid statement
     validate.value = false;
   }
 
-  // default statement
+  // Default statement
   return validate.value;
 }
 
@@ -73,15 +78,15 @@ DockerCompose.prototype.prepare = function (config, grunt) {
  * @return {Boolean} true in case of success, false otherwise
  */
 DockerCompose.prototype.build = function (config, grunt, key, value, destination) {
-  // log process message
+  // Log process message
   grunt.log.debug([ 'We try to process compose for', key, 'environment' ].join(' '));
 
-  // we need first validate the json format for dockerfile config
+  // We need first validate the json format for dockerfile config
   var validate = joi.validate(config, this.getSchema());
 
-  // result is valid ?
+  // Result is valid ?
   if (!_.isNull(validate.error)) {
-    // log invalid message
+    // Log invalid message
     grunt.log.warn([
       'Cannot build the dockercompose for', key, 'becasue schema is invalid :', validate.error
     ].join(' '));
@@ -90,19 +95,19 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
     return false;
   }
 
-  // re use config
+  // Re use config
   config = validate.value;
 
   // No try to load template file
   var template = yaml.load(path.resolve([
     process.cwd(), [
       'tasks/models/docker-compose', [ key !== 'common' ? '-overload' : '' ].join('-'),
-    '.template' ].join('')
+      '.template' ].join('')
   ].join('/')));
 
-  // is development, staging or production key ? in this case we need to append default command
+  // Is development, staging or production key ? in this case we need to append default command
   if (key !== 'common') {
-    // ressign value
+    // Ressign value
     _.set(template, 'services.service_name.command', [ '-', _.first(key) ].join(''));
   }
 
@@ -111,7 +116,7 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
 
   // Now we try to set compose process
   if (key === 'common') {
-    // now set values
+    // Now set values
     _.set(item, 'image', _.compact([
       value.imagePrefix || false, _.kebabCase(grunt.config('pkg.name'))
     ]).join('/'));
@@ -121,18 +126,22 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
 
   // Only if item is valid
   if (!_.isUndefined(item) && _.isObject(item) && !_.isEmpty(item)) {
-    // reassign value
+    // Reassign value
     _.set(template.services, 'service_name', item);
+
     // In normal/other case we try to merge given config from current
     _.mergeWith(template, value, function (objValue, srcValue) {
-      // is array ?
+      // Is array ?
       if (_.isArray(objValue)) {
-        // refault statement
+        // Refault statement
         return objValue.concat(srcValue);
       }
+
+      // Default statement
+      return _.get(template, 'undefined');
     });
 
-    // remap template with current key
+    // Remap template with current key
     _.set(template.services,
       _.kebabCase(grunt.config('pkg.name')), _.get(template, 'services.service_name'));
 
@@ -142,7 +151,7 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
     // If we are here we need to try to save current composefile
     grunt.file.write(destination, yaml.stringify(template, 7, 2));
 
-    // default statement, and this must return true otherwise an error occured.
+    // Default statement, and this must return true otherwise an error occured.
     return grunt.file.exists(destination);
   }
 
@@ -152,4 +161,3 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
 
 // Default export
 module.exports = new DockerCompose();
-

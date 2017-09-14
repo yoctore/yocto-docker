@@ -10,7 +10,7 @@ module.exports = function (grunt) {
     yoctodocker : {},
     yoctohint   : {
       node : [
-        'tasks/yoctodocker.js',
+        'tasks/**/*.js',
         'Gruntfile.js'
       ]
     }

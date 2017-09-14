@@ -1,5 +1,4 @@
 [![NPM](https://nodei.co/npm/yocto-docker.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/yocto-docker/)
-
 ![alt text](https://cdn.gruntjs.com/builtwith.png)
 [![Node Required version](https://img.shields.io/badge/node-%3E%3D6.11.2-brightgreen.svg)]()
 ![alt text](https://david-dm.org/yoctore/yocto-docker.svg "Dependencies Status")
@@ -8,6 +7,8 @@
 ## Motivation
 
 All the time and for each project we need to rewrite our docker configuration files (dockerfile/compose/entrypoint), a lot of things are boring to write, so we decide to write this program.
+
+**This program is only for node app, we use pm2 on the main entrypoint.**
 
 ## How to install ?
 
@@ -62,11 +63,13 @@ The property dependencies tree is : <code>dockerfile</code> > <code>compose</cod
 
 When you run your task for the first time, we copy a template file <code>.yocto-docker.json</code>on your project. This template contains the whole needed structure of your config file.
 
-### How configure your project on <code>.yocto-docker.json</code>
+Next step is to edit this file to add needed configuration.
 
 #### Dockerfile properties
 
 In this part you must defined all your dockerfile properties based on docker documentation.
+
+**We used <code>package.json</code> properties to fill some values, like <code>name, description, version</code>**
 
 ##### FROM
 
@@ -93,11 +96,6 @@ By default is node with latest lts version is defined for from property you can 
 
 To defined labels on your docker process, you can complete this property.
 By default we add property from your package.json (name, version, description, main, and other useful labels) on your final Dockerfile.
-
-```
-"labels": [],
-```
-By default this array is empty you can append new value on it if you defined and object like this : 
 
 *This property follow this validation schema :* 
 
@@ -194,7 +192,7 @@ By default the application append the current git user on maintainers list.
 *This property follow this validation schema :* 
 
 ```
-maintainers : joi.array().optional().items(joi.string().optional().empty()).default([]),
+maintainers : joi.array().optional().items(joi.string().optional().empty()).default([])
 ```
 
 ##### HEALTHCHECK
@@ -230,7 +228,7 @@ To define exposed ports, you can use this property.
 *This property follow this validation schema :* 
 
 ```
-ports : joi.array().optional().items(joi.number().optional().min(0)).default([]),
+ports : joi.array().optional().items(joi.number().optional().min(0)).default([])
 ```
 
 ##### VOLUMES
@@ -240,7 +238,7 @@ To define exposed volumes, you can use this property.
 *This property follow this validation schema :* 
 
 ```
-volumes : joi.array().optional().items(joi.string().optional().empty()).default([]),
+volumes : joi.array().optional().items(joi.string().optional().empty()).default([])
 ```
 
 ##### ENTRYPOINTS
@@ -248,10 +246,10 @@ volumes : joi.array().optional().items(joi.string().optional().empty()).default(
 To define entrypoints options, you can use this property.
 By default the main entrypoint of the application is <code>[ /bin/bash', 'scripts/start-application.sh'] </code>, all extra value given if push at the end of this command.
 
-*This property follow this validation schema :* 
+*This property follow this validation schema :*
 
 ```
-entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([]),
+entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([])
 ```
 
 ##### COMMANDS
@@ -269,7 +267,149 @@ By default the a list of commande is define :
 *This property follow this validation schema :* 
 
 ```
-entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([]),
+entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([])
 ```
 
+##### RUNTIME
+
+Here we define config value for pm2 process use in default entrypoint.
+It's possible to defined cpu core limit and memory limit.
+
+*This property follow this validation schema :* 
+
+```
+runtime  : joi.object().optional().keys({
+    nb_cores     : joi.number().optional().min(1).default(1),
+    memory_limit : joi.number().optional().min(2048).default(2048)
+}).default({
+    nb_cores     : 1,
+    memory_limit : 2048
+})
+```
+
+##### PROXY
+
+If you build a docker microservice app, maybe you need to use a reverse proxy.
+For this we have implemented a basic configuration for [Traefik a modern reverve proxy](https://traefik.io).
+
+*This property follow this validation schema :* 
+
+```
+  proxy : joi.object().optional().keys({
+    enable              : joi.boolean().optional().default(false),
+    network             : joi.string().optional().default('bridge').empty(),
+    hosts               : joi.array().optional().items(
+      joi.string().optional().uri({ allowRelative : true }).empty()
+    ).default([]),
+    entrypointProcotol  : joi.array().optional().default([ 'http', 'https']).empty(),
+    backendProtocol     : joi.string().optional().default('http').empty(),
+    loadbalancer        : joi.number().optional().default(0).min(0),
+    sendHeader          : joi.boolean().optional().default(true),
+    priority            : joi.number().optional().default(10),
+    allowedIp           : joi.array().optional().default([])
+  }).default({
+    enable              : false,
+    network             : 'bridge',
+    hosts               : [],
+    entrypointProcotol  : [ 'http', 'https' ],
+    backendProtocol     : 'http',
+    loadbalancer        : 0,
+    sendHeader          : true,
+    priority            : 10,
+    allowedIp           : []
+  })
+```
+
+See below matching between traefik properties and our properties.
+
+namespace    | proxy property   | Traefik property | Comments 
+------------ |  ------------    | -------------    | -------------
+dockerfile   | proxy.enable     | traefik.enable   |
+    -        | name             | traefik.backend  |
+dockerfile   | ports            | traefik.port     | We only take the first define port
+dockerfile   | proxy.backendProtocol | traefik.protocol |
+dockerfile   | proxy.loadbalancer | traefik.weight |
+dockerfile   | proxy.hosts | traefik.frontend.rule | we take all defined hosts and join it with "," and prefix it with "Host:"
+dockerfile   | proxy.sendHeader | traefik.passHostHeader |
+dockerfile   | proxy.priority   | traefik.frontend.priority |
+dockerfile   | proxy.entrypointProcotol | traefik.frontend.entryPoints | we take all defined value and join it with ","
+dockerfile   | proxy.allowedIp | traefik.frontend.whitelistSourceRang | we take all defined value and join it with ","
+dockerfile   | proxy.network | traefik.docker.network
+
+For more defails on each traefik property, online documentation is available [here](https://docs.traefik.io)
+
+#### Docker Compose properties
+
+By default we build a common configuration : 
+
+```
+version: '2'
+services:
+  yocto-docker:
+    build:
+      context: ../../
+      dockerfile: ./scripts/docker/Dockerfile
+    image: yocto-docker
+    container_name: yocto-docker
+    restart: 'on-failure:5'
+    logging:
+      driver: json-file
+      options:
+        max-size: 100m
+        max-file: '7'
+    cpu_shares: 90
+    mem_limit: 2g
+    privileged: false
+    security_opt:
+      - 'apparmor:docker-default'
+      - no-new-privileges
+    environment:
+      TZ: <YOUR CURRENT TIME ZONE>
+```
+
+This configuration can be override, or extend with custom values for each defined envionements.
+
+##### How to override a define config ?
+
+It 's very simple, to override a already defined properties you must write the same path of the already defined properties. 
+For example if we wan to override the <code>TZ</code> properties on the <code>environment</code> for development, you must write this on your json config :
+
+```
+"compose": {
+    "development": {
+      "services" : {
+        "service_name" : {
+          "environment" : {
+            "TZ" : "TEST"
+          }
+        }
+      }
+    }
+```
+
+**Why service_name and not the real name of app ?** 
+
+This name is override by the app during the compose process. That's why you don't need to write it explicitly, the app do it for you.
+
+##### How to extend a define config ?
+
+Do the same thing tha override process, if your key doesn't exists, it will be create.
+
+#### Scripts properties
+
+The scripts part works exactly the same way as compose part, otherwise that you dont need to append <code>service_name</code> property in your json config.
+
+For example : 
+
+```
+"scripts": {
+    "common": {
+      "FOO" : "BAR"
+    },
+    "development": {},
+    "qa": {},
+    "production": {},
+    "staging": {}
+}
+```
 

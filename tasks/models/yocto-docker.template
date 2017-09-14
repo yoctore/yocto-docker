@@ -15,7 +15,19 @@
     "entrypoints" : [],
     "commands" : [],
     "maintainers" : [],
-    "healthcheck" : {}
+    "healthcheck" : {},
+    "runtime" : {},
+    "proxy": {
+      "enable" : false,
+      "network" : "bridge",
+      "hosts"   : [],
+      "entrypointProcotol" : [ "http", "https" ],
+      "backendProtocol" : "http",
+      "loadbalancer" : 0,
+      "sendHeader" : true,
+      "priority" : 10,
+      "allowedIp" : []
+    }
   },
   "compose" : {
     "development" : {},

@@ -32,12 +32,16 @@ LABEL application.name="<%= name %>"
 LABEL application.version="<%= version %>"
 LABEL application.author="<%= dockerfile.author %>"
 LABEL application.maintainers="<%= dockerfile.maintainers.join(", ") %>"
+
+# Set custom labels
 <% _.forEach(dockerfile.labels, function(label) { %>LABEL <%- label.key %>="<%= label.value %>"
 <% });%>
 
 # Set defined environment property
 ENV APPLICATION_NAME="<%= name %>"
 ENV APPLICATION_VERSION="<%= version %>"
+
+# Set customs environment properties
 <% _.forEach(dockerfile.environments, function(environment) { %>ENV <%= _.toUpper(_.snakeCase(environment.key)) %>="<%- environment.value %>"
 <% });%>
 
