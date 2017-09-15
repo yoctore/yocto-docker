@@ -324,19 +324,19 @@ For this we have implemented a basic configuration for [Traefik a modern reverve
 
 See below matching between traefik properties and our properties.
 
-namespace    | proxy property   | Traefik property | Comments 
------------- |  ------------    | -------------    | -------------
-dockerfile   | proxy.enable     | traefik.enable   |
-    -        | name             | traefik.backend  |
-dockerfile   | ports            | traefik.port     | We only take the first define port
-dockerfile   | proxy.backendProtocol | traefik.protocol |
-dockerfile   | proxy.loadbalancer | traefik.weight |
-dockerfile   | proxy.hosts | traefik.frontend.rule | we take all defined hosts and join it with "," and prefix it with "Host:"
-dockerfile   | proxy.sendHeader | traefik.passHostHeader |
-dockerfile   | proxy.priority   | traefik.frontend.priority |
-dockerfile   | proxy.entrypointProcotol | traefik.frontend.entryPoints | we take all defined value and join it with ","
-dockerfile   | proxy.allowedIp | traefik.frontend.whitelistSourceRang | we take all defined value and join it with ","
-dockerfile   | proxy.network | traefik.docker.network
+| Namespace  	| Proxy property           	| Traefik property                     	| Comments                                                                  	|
+|------------	|--------------------------	|--------------------------------------	|---------------------------------------------------------------------------	|
+| dockerfile 	| proxy.enable             	| traefik.enable                       	|                                                                           	|
+| -          	| name                     	| traefik.backend                      	|                                                                           	|
+| dockerfile 	| ports                    	| traefik.port                         	| We only take the first define port                                        	|
+| dockerfile 	| proxy.backendProtocol    	| traefik.protocol                     	|                                                                           	|
+| dockerfile 	| proxy.loadbalancer       	| traefik.weight                       	|                                                                           	|
+| dockerfile 	| proxy.hosts              	| traefik.frontend.rule                	| we take all defined hosts and join it with "," and prefix it with "Host:" 	|
+| dockerfile 	| proxy.sendHeader         	| traefik.passHostHeader               	|                                                                           	|
+| dockerfile 	| proxy.priority           	| traefik.frontend.priority            	|                                                                           	|
+| dockerfile 	| proxy.entrypointProcotol 	| traefik.frontend.entryPoints         	| we take all defined value and join it with ","                            	|
+| dockerfile 	| proxy.allowedIp          	| traefik.frontend.whitelistSourceRang 	| we take all defined value and join it with ","                            	|
+| dockerfile 	| proxy.network            	| traefik.docker.network               	|                                                                           	|
 
 For more defails on each traefik property, online documentation is available [here](https://docs.traefik.io)
 
