@@ -114,6 +114,12 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
   // We do this only if is common process
   var item = _.get(template.services, 'service_name');
 
+  // If dockerfile is not needed remove no need property
+  if (!grunt.option('generateDockerfile')) {
+    // Omit no needed key
+    item = _.omit(item, 'build.dockerfile');
+  }
+
   // Now we try to set compose process
   if (key === 'common') {
     // Now set values
@@ -149,7 +155,7 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
     template.services = _.omit(template.services, [ 'service_name' ]);
 
     // Generate is enabled ?
-    if (grunt.option('generate')) {
+    if (grunt.option('generateCompose')) {
       // If we are here we need to try to save current composefile
       grunt.file.write(destination, yaml.stringify(template, 7, 2));
 

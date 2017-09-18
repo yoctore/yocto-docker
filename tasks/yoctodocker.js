@@ -51,6 +51,11 @@ module.exports = function (grunt) {
   _.set(defaultConfig, 'compose', composeState);
   _.set(defaultConfig, 'scripts', scriptState);
 
+  // Update grunt configuration
+  grunt.option('generateDockerfile', dockerfileState);
+  grunt.option('generateCompose', composeState);
+  grunt.option('generateScripts', scriptState);
+
   // Storage for treeify render on the last step
   var gstorage =  {};
 
@@ -140,7 +145,7 @@ module.exports = function (grunt) {
       var destination = path.resolve([ process.cwd(), 'scripts', 'docker', 'Dockerfile' ].join('/'));
 
       // Generate is enabled ?
-      if (grunt.option('generate')) {
+      if (grunt.option('generateDockerfile')) {
         // Write content
         grunt.file.write(destination, _.template(template)(config));
 
@@ -200,7 +205,7 @@ module.exports = function (grunt) {
             grunt.option('dockerfile', config);
 
             // Only if genrate is enabled
-            if (grunt.option('generate')) {
+            if (grunt.option('generateCompose')) {
               // Log ok message
               grunt.log.ok([
                 'Create compose file for', key, 'was processed and store on', destination
@@ -277,7 +282,7 @@ module.exports = function (grunt) {
           // Do the build process
           if (build) {
             // Only if generate is enable
-            if (grunt.option('generate')) {
+            if (grunt.option('generateScripts')) {
               // Log ok message
               grunt.log.ok([
                 'Create script files for', value.name, 'was processed and store on', destination
@@ -299,7 +304,7 @@ module.exports = function (grunt) {
           }
 
           // Only if generate is enable
-          if (grunt.option('generate')) {
+          if (grunt.option('generateScripts')) {
             // Store scripts path to storage process
             storeForTree('scripts', destination, true);
           }
@@ -344,7 +349,6 @@ module.exports = function (grunt) {
 
       // Set needed option for next process
       grunt.option('dconfig', config);
-      grunt.option('generate', state);
 
       // Call target and run needed process
       grunt.task.run([ 'yoctodocker:build', target ].join('-'));

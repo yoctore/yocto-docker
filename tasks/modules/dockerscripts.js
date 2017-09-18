@@ -149,7 +149,7 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
   // If is not common we need to do a specific process
   if (validate.value.name !== 'common') {
     // Only if genrate is enabled
-    if (grunt.option('generate')) {
+    if (grunt.option('generateScripts')) {
       // If we are here we need to build properly scripts file for each given env
       grunt.file.write(destination, _.template(template)(validate.value));
     }
@@ -197,7 +197,7 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
     }));
 
     // Only if genrate is enabled
-    if (grunt.option('generate')) {
+    if (grunt.option('generateScripts')) {
       // Save file on fs
       grunt.file.write(destination, _.template(template)({
         all     : all,
@@ -211,7 +211,7 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
   }
 
   // Only if genrate is enabled
-  if (grunt.option('generate')) {
+  if (grunt.option('generateScripts')) {
     // In all case ce change the mode of destination file
     fs.chmodSync(destination, '744');
 
