@@ -23,7 +23,7 @@
       "hosts"   : [],
       "entrypointProcotol" : [ "http", "https" ],
       "backendProtocol" : "http",
-      "loadbalancer" : 0,
+      "loadbalancer" : 10,
       "sendHeader" : true,
       "priority" : 10,
       "allowedIp" : []

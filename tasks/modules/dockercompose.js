@@ -100,8 +100,8 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
 
   // No try to load template file
   var template = yaml.load(path.resolve([
-    process.cwd(), [
-      'tasks/models/docker-compose', [ key !== 'common' ? '-overload' : '' ].join('-'),
+    __dirname, [
+      '../models/docker-compose', [ key !== 'common' ? '-overload' : '' ].join('-'),
       '.template' ].join('')
   ].join('/')));
 
@@ -148,11 +148,22 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
     // And onlye keep needed value
     template.services = _.omit(template.services, [ 'service_name' ]);
 
-    // If we are here we need to try to save current composefile
-    grunt.file.write(destination, yaml.stringify(template, 7, 2));
+    // Generate is enabled ?
+    if (grunt.option('generate')) {
+      // If we are here we need to try to save current composefile
+      grunt.file.write(destination, yaml.stringify(template, 7, 2));
 
-    // Default statement, and this must return true otherwise an error occured.
-    return grunt.file.exists(destination);
+      // Default statement, and this must return true otherwise an error occured.
+      return grunt.file.exists(destination);
+    }
+
+    // Log a warn message
+    grunt.log.warn([
+      'Feature build-compose is disabled.',
+      'skipping the file generation process' ].join(' '));
+
+    // In this case is a valid statement
+    return true
   }
 
   // If we are here we need to process default labels to append

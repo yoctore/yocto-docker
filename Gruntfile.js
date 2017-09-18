@@ -7,8 +7,12 @@ module.exports = function (grunt) {
     pkg : grunt.file.readJSON('package.json'),
 
     // Configuration to be run (and then tested).
-    yoctodocker : {},
-    yoctohint   : {
+    yoctodocker : {
+      compose    : true,
+      dockerfile : true,
+      scripts    : true
+    },
+    yoctohint : {
       node : [
         'tasks/**/*.js',
         'Gruntfile.js'

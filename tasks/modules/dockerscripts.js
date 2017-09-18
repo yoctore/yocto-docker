@@ -114,7 +114,7 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
 
   // No try to load template file
   var template = fs.readFileSync(path.resolve([
-    process.cwd(), 'tasks/models', [
+    __dirname, '../models', [
       validate.value.name !== 'common' ? 'scripts-build-compose' : 'scripts-start-application',
       '.sh.template'
     ].join('')
@@ -148,8 +148,11 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
 
   // If is not common we need to do a specific process
   if (validate.value.name !== 'common') {
-    // If we are here we need to build properly scripts file for each given env
-    grunt.file.write(destination, _.template(template)(validate.value));
+    // Only if genrate is enabled
+    if (grunt.option('generate')) {
+      // If we are here we need to build properly scripts file for each given env
+      grunt.file.write(destination, _.template(template)(validate.value));
+    }
 
     // Set command for scripts process
     _.set(validate.value, 'command', _.first(validate.value.name));
@@ -193,22 +196,31 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
       return [ v.key, '="${', v.key, '}"' ].join('');
     }));
 
-    // Save file on fs
-    grunt.file.write(destination, _.template(template)({
-      all     : all,
-      common  : validate.value,
-      env     : storage,
-      main    : grunt.option('dockerfile').main,
-      name    : grunt.option('dockerfile').name,
-      runtime : grunt.option('dockerfile').dockerfile.runtime || {}
-    }));
+    // Only if genrate is enabled
+    if (grunt.option('generate')) {
+      // Save file on fs
+      grunt.file.write(destination, _.template(template)({
+        all     : all,
+        common  : validate.value,
+        env     : storage,
+        main    : grunt.option('dockerfile').main,
+        name    : grunt.option('dockerfile').name,
+        runtime : grunt.option('dockerfile').dockerfile.runtime || {}
+      }));
+    }
   }
 
-  // In all case ce change the mode of destination file
-  fs.chmodSync(destination, '744');
+  // Only if genrate is enabled
+  if (grunt.option('generate')) {
+    // In all case ce change the mode of destination file
+    fs.chmodSync(destination, '744');
 
-  // Default process statement
-  return grunt.file.exists(destination) ? validate.value : false;
+    // Default process statement
+    return grunt.file.exists(destination) ? validate.value : false;
+  }
+
+  // In all other case we return a valid statement
+  return true;
 };
 
 // Default export

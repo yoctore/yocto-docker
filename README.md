@@ -48,6 +48,34 @@ module.exports = function (grunt) {
 
 You don't need defined any property on Gruntfile, by default the grunt tasks append need configuration.
 
+### Ok but if we dont need all feature ?
+
+So is this case it's possible to disable file generation for no needed process, for this : 
+
+```
+'use strict';
+
+module.exports = function (grunt) {
+  // Project configuration.
+  grunt.initConfig({
+    // Default package
+    pkg : grunt.file.readJSON('package.json'),
+
+    // Configuration to be run (and then tested).
+    yoctodocker : {
+      compose : true, // or false
+      scripts : true, // or false,
+      dockerfile : true // or false
+    }
+  });
+
+  // Actually load this plugin's task(s).
+  grunt.loadNpmTasks('yocto-docker');
+
+  grunt.registerTask('default', [ 'yoctodocker' ]);
+};
+``` 
+
 ### How internal property works on task process ?
 
 In your currrent <code>yoctodocker</code> tasks, three properties are defined by default.

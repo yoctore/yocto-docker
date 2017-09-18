@@ -11,6 +11,7 @@ var inquirer      = require('inquirer');
 var fs            = require('fs-extra');
 var async         = require('async');
 var request       = require('request');
+var rimraf        = require('rimraf');
 var dockerfile    = require('./modules/dockerfile');
 var dockercompose = require('./modules/dockercompose');
 var dockerscripts = require('./modules/dockerscripts');
@@ -27,10 +28,28 @@ module.exports = function (grunt) {
   // Default config property
   var defaultConfig = {};
 
+  // Define main directory where script was store
+  var mainDestDirectory = path.resolve([ process.cwd(), 'scripts', 'docker' ].join('/'));
+
+  // Onlye if exists OoO
+  if (fs.existsSync(mainDestDirectory)) {
+    rimraf.sync(mainDestDirectory);
+  }
+
+  // Get value
+  var dockerfileState = _.get(grunt.config('yoctodocker'), 'dockerfile');
+  var composeState    = _.get(grunt.config('yoctodocker'), 'compose');
+  var scriptState     = _.get(grunt.config('yoctodocker'), 'scripts');
+
+  // Normalize these value
+  dockerfileState = !_.isBoolean(dockerfileState) ? true : dockerfileState;
+  composeState = !_.isBoolean(composeState) ? true : composeState;
+  scriptState = !_.isBoolean(scriptState) ? true : scriptState;
+
   // Append value to process item on correct order
-  _.set(defaultConfig, 'dockerfile', true);
-  _.set(defaultConfig, 'compose', true);
-  _.set(defaultConfig, 'scripts', true);
+  _.set(defaultConfig, 'dockerfile', dockerfileState);
+  _.set(defaultConfig, 'compose', composeState);
+  _.set(defaultConfig, 'scripts', scriptState);
 
   // Storage for treeify render on the last step
   var gstorage =  {};
@@ -120,20 +139,27 @@ module.exports = function (grunt) {
       // Store destination path
       var destination = path.resolve([ process.cwd(), 'scripts', 'docker', 'Dockerfile' ].join('/'));
 
-      // Write content
-      grunt.file.write(destination, _.template(template)(config));
+      // Generate is enabled ?
+      if (grunt.option('generate')) {
+        // Write content
+        grunt.file.write(destination, _.template(template)(config));
 
-      // File exists && file is not empty ?
-      var state = grunt.file.exists(destination) &&
-        !_.isEmpty(fs.readFileSync(destination).toString());
+        // File exists && file is not empty ?
+        var state = grunt.file.exists(destination) &&
+          !_.isEmpty(fs.readFileSync(destination).toString());
 
-      // Log success message
-      grunt.log.ok([
-        'Dockerfile was', state ? '' : 'not', 'properly created, and was store to', destination
-      ].join(' '));
+        // Log success message
+        grunt.log.ok([
+          'Dockerfile was', state ? '' : 'not', 'properly created, and was store to', destination
+        ].join(' '));
 
-      // Store dockerfile path to storage process
-      storeForTree('dockerfile', destination, state);
+        // Store dockerfile path to storage process
+        storeForTree('dockerfile', destination, state);
+      } else {
+        grunt.log.warn([
+          'Feature build-dockerfile is disabled.',
+          'skipping the file generation process' ].join(' '));
+      }
 
       // Call default callback
       done();
@@ -173,13 +199,16 @@ module.exports = function (grunt) {
             // Change dockerfile property in grunt option
             grunt.option('dockerfile', config);
 
-            // Log ok message
-            grunt.log.ok([
-              'Create compose file for', key, 'was processed and store on', destination
-            ].join(' '));
+            // Only if genrate is enabled
+            if (grunt.option('generate')) {
+              // Log ok message
+              grunt.log.ok([
+                'Create compose file for', key, 'was processed and store on', destination
+              ].join(' '));
 
-            // Store compose path to storage process
-            storeForTree('compose', destination, true);
+              // Store compose path to storage process
+              storeForTree('compose', destination, true);
+            }
 
             // Do the normal process
             return next();
@@ -247,23 +276,33 @@ module.exports = function (grunt) {
 
           // Do the build process
           if (build) {
-            // Log ok message
-            grunt.log.ok([
-              'Create script files for', value.name, 'was processed and store on', destination
-            ].join(' '));
+            // Only if generate is enable
+            if (grunt.option('generate')) {
+              // Log ok message
+              grunt.log.ok([
+                'Create script files for', value.name, 'was processed and store on', destination
+              ].join(' '));
+
+              // Store scripts path to storage process
+              storeForTree('scripts', destination, true);
+            } else {
+              grunt.log.warn([
+                'Feature build-scripts is disabled.',
+                'skipping the file generation process' ].join(' '));
+            }
 
             // Save on main storage for newt common process
             storage.push(build);
-
-            // Store scripts path to storage process
-            storeForTree('scripts', destination, true);
 
             // Do the normal process
             return next();
           }
 
-          // Store scripts path to storage process
-          storeForTree('scripts', destination, true);
+          // Only if generate is enable
+          if (grunt.option('generate')) {
+            // Store scripts path to storage process
+            storeForTree('scripts', destination, true);
+          }
 
           // Default invalid statement
           return next(false);
@@ -303,27 +342,19 @@ module.exports = function (grunt) {
       // Set current hookname
       grunt.hookname = 'yocto-docker';
 
-      // Dispatch content
-      if (state === true) {
-        // Set options for current task
-        grunt.option('dconfig', config);
+      // Set needed option for next process
+      grunt.option('dconfig', config);
+      grunt.option('generate', state);
 
-        // Try to run given task
-        if (grunt.task.run([ 'yoctodocker:build', target ].join('-'))) {
-          // Default statement
-          return done();
-        }
-      }
-
-      // Log warn message
-      grunt.log.warn([ 'Feature', target, 'is disabled. skipping this process' ].join(' '));
+      // Call target and run needed process
+      grunt.task.run([ 'yoctodocker:build', target ].join('-'));
 
       // Call the default callback and keep the previous process keep the lead
       return done();
     }
 
     // Try to create create needed directory
-    fs.ensureDirSync(path.resolve([ process.cwd(), 'scripts', 'docker' ].join('/')))
+    fs.ensureDirSync(mainDestDirectory);
 
     // Log info message
     grunt.log.ok([ 'Preparing build for >>', this.target ].join(' '));
