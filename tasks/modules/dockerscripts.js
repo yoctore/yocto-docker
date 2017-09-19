@@ -171,7 +171,7 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
     }));
 
     // Only if genrate is enabled
-    if (grunt.option('generateScripts')) {
+    if (grunt.option('generateScripts') && grunt.option('generateDockerfile')) {
       // Save file on fs
       grunt.file.write(destination, _.template(template)({
         all     : all,
@@ -185,7 +185,7 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
   }
 
   // Only if genrate is enabled
-  if (grunt.option('generateScripts')) {
+  if (grunt.option('generateScripts') && grunt.option('generateDockerfile')) {
     // In all case ce change the mode of destination file
     fs.chmodSync(destination, '744');
 
