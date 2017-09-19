@@ -5,6 +5,7 @@ var joi           = require('joi');
 var yaml          = require('yamljs');
 var path          = require('path');
 var timezone      = require('moment-timezone');
+var schema        = require('./schema');
 
 /**
  * Main dockercompose factory. Process all action for dockercompose creation
@@ -17,31 +18,6 @@ function DockerCompose () {
 }
 
 /**
- * Get default schema for validation process
- *
- * @return {Object} validation schema to use for validation
- */
-DockerCompose.prototype.getSchema = function () {
-  // Default schema to use for validation
-  return joi.object().required().keys({
-    dockerfile : joi.object().required().keys({}).unknown(),
-    compose    : joi.object().optional().keys({
-      common      : joi.object().optional().keys({}).default({}).unknown(),
-      development : joi.object().optional().keys({}).default({}).unknown(),
-      qa          : joi.object().optional().keys({}).default({}).unknown(),
-      staging     : joi.object().optional().keys({}).default({}).unknown(),
-      production  : joi.object().optional().keys({}).default({}).unknown()
-    }).unknown().default({
-      common      : {},
-      development : {},
-      qa          : {},
-      staging     : {},
-      production  : {}
-    })
-  }).unknown();
-};
-
-/**
  * Prepare the main object to be on the correct format for build process
  *
  * @param {Object} config current config object to prepare for build process
@@ -50,7 +26,7 @@ DockerCompose.prototype.getSchema = function () {
  */
 DockerCompose.prototype.prepare = function (config, grunt) {
   // We need first validate the json format for dockerfile config
-  var validate = joi.validate(config, this.getSchema());
+  var validate = joi.validate(config, schema.get());
 
   // Has error ?
   if (!_.isNull(validate.error)) {
@@ -82,7 +58,7 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
   grunt.log.debug([ 'We try to process compose for', key, 'environment' ].join(' '));
 
   // We need first validate the json format for dockerfile config
-  var validate = joi.validate(config, this.getSchema());
+  var validate = joi.validate(config, schema.get());
 
   // Result is valid ?
   if (!_.isNull(validate.error)) {
@@ -132,6 +108,18 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
 
   // Only if item is valid
   if (!_.isUndefined(item) && _.isObject(item) && !_.isEmpty(item)) {
+    // Only if is a common base file
+    if (key === 'common') {
+      // Add all defined labels
+      _.set(item, 'labels', _.flatten(_.map(_.get(config, 'dockerfile.labels'), function (label) {
+        // Default statement
+        return [ label.key, label.value ].join('=');
+      })));
+
+      // Set privileged property
+      _.set(item, 'privileged', _.get(config, 'dockerfile.privileged'));
+    }
+
     // Reassign value
     _.set(template.services, 'service_name', item);
 

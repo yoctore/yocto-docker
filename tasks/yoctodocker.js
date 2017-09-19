@@ -139,7 +139,7 @@ module.exports = function (grunt) {
       ].join('/')).toString();
 
       // Set dockerfile on grunt option to use on next process
-      grunt.option('dockerfile', config);
+      grunt.option('allconfig', config);
 
       // Store destination path
       var destination = path.resolve([ process.cwd(), 'scripts', 'docker', 'Dockerfile' ].join('/'));
@@ -185,7 +185,7 @@ module.exports = function (grunt) {
     // Do the main process on a try catch process
     try {
       // Get config file
-      var config = grunt.option('dockerfile');
+      var config = grunt.option('allconfig');
 
       // We need to prepare our config properly
       config = dockercompose.prepare(config, grunt);
@@ -202,7 +202,7 @@ module.exports = function (grunt) {
           // Do the build process
           if (dockercompose.build(config, grunt, key, value, destination)) {
             // Change dockerfile property in grunt option
-            grunt.option('dockerfile', config);
+            grunt.option('allconfig', config);
 
             // Only if genrate is enabled
             if (grunt.option('generateCompose')) {
@@ -259,7 +259,7 @@ module.exports = function (grunt) {
 
     try {
       // Get config file
-      var config = grunt.option('dockerfile');
+      var config = grunt.option('allconfig');
 
       // We need to prepare our config properly
       config = dockerscripts.prepare(config, grunt);
@@ -318,6 +318,9 @@ module.exports = function (grunt) {
       } else {
         // Log nothing to process message
         grunt.log.ok('Compose has no rules defined for scripts part. Skiping this process.');
+
+        // Normal process
+        done();
       }
     } catch (e) {
       // Log error

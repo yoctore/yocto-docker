@@ -9,8 +9,8 @@ module.exports = function (grunt) {
     // Configuration to be run (and then tested).
     yoctodocker : {
       compose    : true,
-      dockerfile : false,
-      scripts    : false
+      dockerfile : true,
+      scripts    : true
     },
     yoctohint : {
       node : [

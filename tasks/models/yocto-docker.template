@@ -16,18 +16,7 @@
     "commands" : [],
     "maintainers" : [],
     "healthcheck" : {},
-    "runtime" : {},
-    "proxy": {
-      "enable" : false,
-      "network" : "bridge",
-      "hosts"   : [],
-      "entrypointProcotol" : [ "http", "https" ],
-      "backendProtocol" : "http",
-      "loadbalancer" : 10,
-      "sendHeader" : true,
-      "priority" : 10,
-      "allowedIp" : []
-    }
+    "privileged" : false
   },
   "compose" : {
     "development" : {},
@@ -41,5 +30,17 @@
     "qa" : {},
     "production" : {},
     "staging" : {}
+  },
+  "runtime" : {},
+  "proxy": {
+    "enable" : false,
+    "network" : "bridge",
+    "hosts"   : [],
+    "entrypointProcotol" : [ "http", "https" ],
+    "backendProtocol" : "http",
+    "loadbalancer" : 10,
+    "sendHeader" : true,
+    "priority" : 10,
+    "allowedIp" : []
   }
 }

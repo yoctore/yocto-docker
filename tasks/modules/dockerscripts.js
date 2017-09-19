@@ -4,6 +4,7 @@ var _             = require('lodash');
 var joi           = require('joi');
 var path          = require('path');
 var fs            = require('fs');
+var schema        = require('./schema');
 
 /**
  * Main dockerscripts factory. Process all action for dockerscripts creation
@@ -16,32 +17,6 @@ function DockerScripts () {
 }
 
 /**
- * Get default schema for validation process
- *
- * @return {Object} validation schema to use for validation
- */
-DockerScripts.prototype.getSchema = function () {
-  // Default schema to use for validation
-  return joi.object().required().keys({
-    dockerfile : joi.object().required().keys({}).unknown(),
-    compose    : joi.object().required().keys({}).unknown(),
-    scripts    : joi.object().optional().keys({
-      common      : joi.object().optional().keys({}).default({}).unknown(),
-      development : joi.object().optional().keys({}).default({}).unknown(),
-      qa          : joi.object().optional().keys({}).default({}).unknown(),
-      staging     : joi.object().optional().keys({}).default({}).unknown(),
-      production  : joi.object().optional().keys({}).default({}).unknown()
-    }).unknown().default({
-      common      : {},
-      development : {},
-      qa          : {},
-      staging     : {},
-      production  : {}
-    })
-  }).unknown();
-};
-
-/**
  * Prepare the main object to be on the correct format for build process
  *
  * @param {Object} config current config object to prepare for build process
@@ -50,7 +25,7 @@ DockerScripts.prototype.getSchema = function () {
  */
 DockerScripts.prototype.prepare = function (config, grunt) {
   // We need first validate the json format for dockerfile config
-  var validate = joi.validate(config, this.getSchema());
+  var validate = joi.validate(config, schema.get());
 
   // Has error ?
   if (!_.isNull(validate.error)) {
@@ -134,7 +109,6 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
       var obj = {}
 
       // Set key
-
       _.set(obj, 'key', k);
       _.set(obj, 'value', v);
 
@@ -203,9 +177,9 @@ DockerScripts.prototype.build = function (grunt, value, destination, storage) {
         all     : all,
         common  : validate.value,
         env     : storage,
-        main    : grunt.option('dockerfile').main,
-        name    : grunt.option('dockerfile').name,
-        runtime : grunt.option('dockerfile').dockerfile.runtime || {}
+        main    : grunt.option('allconfig').main,
+        name    : grunt.option('allconfig').name,
+        runtime : grunt.option('allconfig').runtime || {}
       }));
     }
   }

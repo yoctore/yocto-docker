@@ -18,7 +18,7 @@ function Traefik () {
  */
 Traefik.prototype.build = function (config) {
   // Proxy rules are enable ?
-  var enable = _.get(config, 'dockerfile.proxy.enable') || false;
+  var enable = _.get(config, 'proxy.enable') || false;
 
   // Default rules to appy
   var rules = [
@@ -34,32 +34,32 @@ Traefik.prototype.build = function (config) {
       first : true
     }, {
       key  : 'protocol',
-      path : 'dockerfile.proxy.backendProtocol'
+      path : 'proxy.backendProtocol'
     }, {
       key  : 'weight',
-      path : 'dockerfile.proxy.loadbalancer'
+      path : 'proxy.loadbalancer'
     }, {
       key  : 'frontend.rule',
-      path : 'dockerfile.proxy.hosts',
+      path : 'proxy.hosts',
       join : true,
       pre  : 'Host:'
     }, {
       key  : 'frontend.passHostHeader',
-      path : 'dockerfile.proxy.sendHeader'
+      path : 'proxy.sendHeader'
     }, {
       key  : 'frontend.priority',
-      path : 'dockerfile.proxy.priority'
+      path : 'proxy.priority'
     }, {
       key  : 'frontend.entryPoints',
-      path : 'dockerfile.proxy.entrypointProcotol',
+      path : 'proxy.entrypointProcotol',
       join : true
     }, {
       key  : 'frontend.whitelistSourceRange',
-      path : 'dockerfile.proxy.allowedIp',
+      path : 'proxy.allowedIp',
       join : true
     }, {
       key  : 'docker.network',
-      path : 'dockerfile.proxy.network'
+      path : 'proxy.network'
     }
   ];
 
