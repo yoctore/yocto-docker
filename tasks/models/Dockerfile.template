@@ -81,10 +81,10 @@ HEALTHCHECK <% if (dockerfile.healthcheck.command === "NONE") { %>NONE<% } else 
 # ---------------------------------------------------------------
 
 # Set defined exposed port
-<% if (!_.isEmpty(dockerfile.ports)) { %>EXPOSE <%= dockerfile.ports.join(' ') %><% } %>
+<% if (!_.isEmpty(dockerfile.ports)) { %>EXPOSE <%= _.map(dockerfile.ports, function (port) { return port.exposed }).join(' ') %><% } %>
 
 # Set defined exposed volumes
-<% _.forEach(dockerfile.volumes, function(volume) { %>VOLUME <%= volume %>
+<% _.forEach(dockerfile.volumes, function(volume) { %><% if (volume.env === 'common' && volume.exposed) { %>VOLUME <%= volume.target %> <% } %>
 <% }); %>
 
 # Set defined entrypoint values

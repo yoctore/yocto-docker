@@ -78,8 +78,19 @@ function Schema () {
         retries : joi.number().optional().min(0).default(3),
         command : joi.string().optional().empty().default('NONE')
       }).default({}),
-      ports       : joi.array().optional().items(joi.number().optional().min(0)).default([]),
-      volumes     : joi.array().optional().items(joi.string().optional().empty()).default([]),
+      ports : joi.array().items(joi.object().optional().keys({
+        exposed : joi.number().required().min(0),
+        bind    : joi.number().optional().min(0)
+      })).default([]),
+      volumes : joi.array().optional().items(joi.object().optional().keys({
+        source : joi.string().optional().empty(),
+        target : joi.string().required().empty(),
+        rights : joi.string().optional().empty().valid([ 'ro', 'rw' ]).default('ro'),
+        env    : joi.string().optional().empty().valid([
+          'development', 'staging', 'production', 'qa', 'common'
+        ]).default('common'),
+        exposed : joi.boolean().optional().default(false)
+      }).unknown()).default([]),
       entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([]),
       commands    : joi.array().optional().items(joi.string().optional().empty()).default([]),
       privileged  : joi.boolean().optional().default(false)

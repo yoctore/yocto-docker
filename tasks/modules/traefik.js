@@ -87,6 +87,12 @@ Traefik.prototype.build = function (config) {
     // We need first port exposed
     if (rule.first) {
       value = _.first(value);
+
+      // Specific process
+      if (rule.path === 'dockerfile.ports') {
+        // Get exposed value from port definition
+        value = _.get(value, 'exposed');
+      }
     }
 
     // Defaut remap statement

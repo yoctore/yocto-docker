@@ -120,6 +120,26 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
       _.set(item, 'privileged', _.get(config, 'dockerfile.privileged'));
     }
 
+    // Default volumes storage
+    var volumes = [];
+
+    // Process volumes configuration
+    _.each(_.get(config, 'dockerfile.volumes'), function (item) {
+      // Only if is the correct env
+      if (item.env === key) {
+        if (_.has(item, 'source') && _.has(item, 'rights')) {
+          volumes.push([ item.source, item.target, item.rights ].join(':'));
+        } else {
+          volumes.push(item.target);
+        }
+      }
+    });
+
+    // Volumes is empty ?
+    if (!_.isEmpty(volumes)) {
+      _.set(item, 'volumes', volumes);
+    }
+
     // Reassign value
     _.set(template.services, 'service_name', item);
 

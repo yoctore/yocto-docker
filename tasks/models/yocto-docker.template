@@ -38,7 +38,7 @@
     "hosts"   : [],
     "entrypointProcotol" : [ "http", "https" ],
     "backendProtocol" : "http",
-    "loadbalancer" : 10,
+    "loadbalancer" : 0,
     "sendHeader" : true,
     "priority" : 10,
     "allowedIp" : []

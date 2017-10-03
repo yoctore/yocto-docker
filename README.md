@@ -258,8 +258,14 @@ To define exposed ports, you can use this property.
 *This property follow this validation schema :* 
 
 ```
-ports : joi.array().optional().items(joi.number().optional().min(0)).default([])
+ports : joi.array().items(joi.object().optional().keys({
+  exposed : joi.number().required().min(0),
+  bind    : joi.number().optional().min(0)
+})).default([]),
 ```
+
+<code>exposed</code> is the exposed port on the container
+<code>bind</code> is the bind port, this value is optionnal if is not bind
 
 ##### VOLUMES
 
@@ -268,8 +274,16 @@ To define exposed volumes, you can use this property.
 *This property follow this validation schema :* 
 
 ```
-volumes : joi.array().optional().items(joi.string().optional().empty()).default([])
+volumes     : joi.array().optional().items(joi.object().optional().keys({
+  source  : joi.string().optional().empty(),
+  target  : joi.string().required().empty(),
+  rights  : joi.string().optional().empty().valid([ 'ro', 'rw' ]).default('ro')
+}).unknown()).default([]),
 ```
+
+<code>source</code> is the local directory to mount on the container
+<code>target</code> is the target directory, for binding
+<code>rights</code> is rights to apply on target directory, by default is on readonly
 
 ##### ENTRYPOINTS
 
@@ -299,74 +313,6 @@ By default the a list of commande is define :
 ```
 entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([])
 ```
-
-##### RUNTIME
-
-Here we define config value for pm2 process use in default entrypoint.
-It's possible to defined cpu core limit and memory limit.
-
-*This property follow this validation schema :* 
-
-```
-runtime  : joi.object().optional().keys({
-    nb_cores     : joi.number().optional().min(1).default(1),
-    memory_limit : joi.number().optional().min(2048).default(2048)
-}).default({
-    nb_cores     : 1,
-    memory_limit : 2048
-})
-```
-
-##### PROXY
-
-If you build a docker microservice app, maybe you need to use a reverse proxy.
-For this we have implemented a basic configuration for [Traefik a modern reverve proxy](https://traefik.io).
-
-*This property follow this validation schema :* 
-
-```
-  proxy : joi.object().optional().keys({
-    enable              : joi.boolean().optional().default(false),
-    network             : joi.string().optional().default('bridge').empty(),
-    hosts               : joi.array().optional().items(
-      joi.string().optional().uri({ allowRelative : true }).empty()
-    ).default([]),
-    entrypointProcotol  : joi.array().optional().default([ 'http', 'https']).empty(),
-    backendProtocol     : joi.string().optional().default('http').empty(),
-    loadbalancer        : joi.number().optional().default(0).min(0),
-    sendHeader          : joi.boolean().optional().default(true),
-    priority            : joi.number().optional().default(10),
-    allowedIp           : joi.array().optional().default([])
-  }).default({
-    enable              : false,
-    network             : 'bridge',
-    hosts               : [],
-    entrypointProcotol  : [ 'http', 'https' ],
-    backendProtocol     : 'http',
-    loadbalancer        : 0,
-    sendHeader          : true,
-    priority            : 10,
-    allowedIp           : []
-  })
-```
-
-See below matching between traefik properties and our properties.
-
-| Namespace  	| Proxy property           	| Traefik property                     	| Comments                                                                  	|
-|------------	|--------------------------	|--------------------------------------	|---------------------------------------------------------------------------	|
-| dockerfile 	| proxy.enable             	| traefik.enable                       	|                                                                           	|
-| -          	| name                     	| traefik.backend                      	|                                                                           	|
-| dockerfile 	| ports                    	| traefik.port                         	| We only take the first define port                                        	|
-| dockerfile 	| proxy.backendProtocol    	| traefik.protocol                     	|                                                                           	|
-| dockerfile 	| proxy.loadbalancer       	| traefik.weight                       	|                                                                           	|
-| dockerfile 	| proxy.hosts              	| traefik.frontend.rule                	| we take all defined hosts and join it with "," and prefix it with "Host:" 	|
-| dockerfile 	| proxy.sendHeader         	| traefik.passHostHeader               	|                                                                           	|
-| dockerfile 	| proxy.priority           	| traefik.frontend.priority            	|                                                                           	|
-| dockerfile 	| proxy.entrypointProcotol 	| traefik.frontend.entryPoints         	| we take all defined value and join it with ","                            	|
-| dockerfile 	| proxy.allowedIp          	| traefik.frontend.whitelistSourceRang 	| we take all defined value and join it with ","                            	|
-| dockerfile 	| proxy.network            	| traefik.docker.network               	|                                                                           	|
-
-For more defails on each traefik property, online documentation is available [here](https://docs.traefik.io)
 
 #### Docker Compose properties
 
@@ -442,4 +388,80 @@ For example :
     "staging": {}
 }
 ```
+
+#### Extra parameters
+
+By default this docker generation process is for a node application base on pm2.
+To defined pm2 limitation the the <code>runtime</code> properties define on the root scope of your <code>.yocto-docker.json</code>
+
+##### RUNTIME
+
+Here we define config value for pm2 process use in default entrypoint.
+It's possible to defined cpu core limit and memory limit.
+
+*This property follow this validation schema :* 
+
+```
+runtime  : joi.object().optional().keys({
+    nb_cores     : joi.number().optional().min(1).default(1),
+    memory_limit : joi.number().optional().min(2048).default(2048)
+}).default({
+    nb_cores     : 1,
+    memory_limit : 2048
+})
+```
+
+##### PROXY
+
+If you build a docker microservice app, maybe you need to use a reverse proxy.
+For this we have implemented a basic configuration for [Traefik a modern reverve proxy](https://traefik.io).
+
+This property is defined on the root scope of your <code>.yocto-docker.json</code>
+
+*This property follow this validation schema :*
+
+```
+  proxy : joi.object().optional().keys({
+    enable              : joi.boolean().optional().default(false),
+    network             : joi.string().optional().default('bridge').empty(),
+    hosts               : joi.array().optional().items(
+      joi.string().optional().uri({ allowRelative : true }).empty()
+    ).default([]),
+    entrypointProcotol  : joi.array().optional().default([ 'http', 'https']).empty(),
+    backendProtocol     : joi.string().optional().default('http').empty(),
+    loadbalancer        : joi.number().optional().default(0).min(0),
+    sendHeader          : joi.boolean().optional().default(true),
+    priority            : joi.number().optional().default(10),
+    allowedIp           : joi.array().optional().default([])
+  }).default({
+    enable              : false,
+    network             : 'bridge',
+    hosts               : [],
+    entrypointProcotol  : [ 'http', 'https' ],
+    backendProtocol     : 'http',
+    loadbalancer        : 0,
+    sendHeader          : true,
+    priority            : 10,
+    allowedIp           : []
+  })
+```
+
+See below matching between traefik properties and our properties.
+
+| Namespace  	| Proxy property           	| Traefik property                     	| Comments                                                                  	|
+|------------	|--------------------------	|--------------------------------------	|---------------------------------------------------------------------------	|
+| dockerfile 	| proxy.enable             	| traefik.enable                       	|                                                                           	|
+| -          	| name                     	| traefik.backend                      	|                                                                           	|
+| dockerfile 	| ports                    	| traefik.port                         	| We only take the first define port                                        	|
+| dockerfile 	| proxy.backendProtocol    	| traefik.protocol                     	|                                                                           	|
+| dockerfile 	| proxy.loadbalancer       	| traefik.weight                       	|                                                                           	|
+| dockerfile 	| proxy.hosts              	| traefik.frontend.rule                	| we take all defined hosts and join it with "," and prefix it with "Host:" 	|
+| dockerfile 	| proxy.sendHeader         	| traefik.passHostHeader               	|                                                                           	|
+| dockerfile 	| proxy.priority           	| traefik.frontend.priority            	|                                                                           	|
+| dockerfile 	| proxy.entrypointProcotol 	| traefik.frontend.entryPoints         	| we take all defined value and join it with ","                            	|
+| dockerfile 	| proxy.allowedIp          	| traefik.frontend.whitelistSourceRang 	| we take all defined value and join it with ","                            	|
+| dockerfile 	| proxy.network            	| traefik.docker.network               	|                                                                           	|
+
+For more defails on each traefik property, online documentation is available [here](https://docs.traefik.io)
+
 
