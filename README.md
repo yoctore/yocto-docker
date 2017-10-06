@@ -10,7 +10,7 @@
 
 All the time and for each project we need to rewrite our docker configuration files (dockerfile/compose/entrypoint), a lot of things are boring to write, so we decide to write this program.
 
-**This program is only for node app, we use pm2 on the main entrypoint.**
+**This program can be use only to build a container for a node app**
 
 ## How to install ?
 
@@ -46,11 +46,11 @@ module.exports = function (grunt) {
 
 ### No property defined on Gruntfile ?
 
-You don't need defined any property on Gruntfile, by default the grunt tasks append need configuration.
+You don't need defined any property on Gruntfile, by default the `yocto-docker` tasks append need configuration.
 
 ### Ok but if we dont need all feature ?
 
-So is this case it's possible to disable file generation for no needed process, for this : 
+So is this case it's possible to disable file generation for no needed process, for example, maybe you dont need compose or script generation part. Do do this just set to `true`or `false` on your `Gruntfile`  for each property like below : 
 
 ```
 'use strict';
@@ -76,322 +76,156 @@ module.exports = function (grunt) {
 };
 ``` 
 
-### How internal property works on task process ?
+### How this program works ?
 
-In your currrent <code>yoctodocker</code> tasks, three properties are defined by default.
-This three properties provide a complete build of : 
+Use use a template config file  <code>.yocto-docker.json</code> and transform each for each build process.
 
-- Dockerfile
-- Compose files for each defined environment
-- Bash scripts files to start a build for each defined environment 
+This program build a `Dockerfile`, all needed `docker-compose` file based on all needed environment, and all needed `scripts` based on needed environment too.
 
-Generally this three properties work together to process the complete build.
+The tree property dependencies is : <code>dockerfile</code> > <code>compose</code> > <code>scripts</code>
 
-The property dependencies tree is : <code>dockerfile</code> > <code>compose</code> > <code>scripts</code>
+### What we need to write  ?
 
-## How to configure your docker rules
+The main entrypoint to edit your configuration file is to edit the `dockerfile`property part.
 
-When you run your task for the first time, we copy a template file <code>.yocto-docker.json</code>on your project. This template contains the whole needed structure of your config file.
+If you need `compose`part, keep cool, data are automatically used and builded by defined environment.  
 
-Next step is to edit this file to add needed configuration.
+And for the script part, it's the same.
+
+## So ok, how to configure your docker rules ?
+
+*When you run your task for the first time, a copy of default template file <code>.yocto-docker.json</code>on your project is created. This template contains the whole needed structure of your config file.*
+
+The first things to understand is how to to defined and write all listed property.
+To see defined schema for all defined property click [here](https://github.com/yoctore/yocto-docker/blob/master/tasks/modules/schema.js)  
+
+Now let's go list and understand all property.
 
 #### Dockerfile properties
 
-In this part you must defined all your dockerfile properties based on docker documentation.
-
-**We used <code>package.json</code> properties to fill some values, like <code>name, description, version</code>**
-
 ##### FROM
 
-To define on which package your application is based you can complete this property.
-
-```
-"from" : {
-  "name": "node", // this is the default value of this object
-  "version": "6.11.2" // it's the latest lts version of node by default 
-}
-```
-By default is node with latest lts version is defined for from property you can can change it if you need.
-
-*This property follow this validation schema :* 
-
-```
- from : joi.object().required().keys({
-   name : joi.string().required().empty(),
-   version : joi.string().required().empty()
- })
-```
+It's used to define on which package your application is based you can complete this property.
 
 ##### LABELS
 
-To defined labels on your docker process, you can complete this property.
-By default we add property from your package.json (name, version, description, main, and other useful labels) on your final Dockerfile.
+It's used to defined labels on your docker process.
 
-*This property follow this validation schema :* 
-
-```
- labels : joi.array().optional().items(joi.object().optional().keys({
-   key   : joi.string().required().empty(),
-   value : joi.string().required().empty()
- })).default([])
-```
+*By default we automatically add property from your package.json (name, version, description, main, and other useful labels) on labels on your final Dockerfile, so don't rewrite it*
 
 ##### ENVIRONMENTS
 
-To defined environments values on your docker process, you can complete this property.
-By default your application name and version is append on final Dockerfile
+It's used to environments values on your docker process
 
-*This property follow this validation schema :* 
-
-```
-environments : joi.array().optional().items(joi.object().optional().keys({
-    key   : joi.string().required().empty(),
-    value : joi.string().required().empty(),
-    comment : joi.string().optional().empty()
-})).default([])
-```
+*By default your application name and version is append on final Dockerfile*
 
 ##### ARGUMENT
 
-To defined args on your docker process, you can complete this property.
-
-*This property follow this validation schema :* 
-
-```
-argument : joi.array().optional().items(joi.object().optional().keys({
-    key   : joi.string().required().empty(),
-    value : joi.string().required().empty()
-})).default([])
-```
+It's used to  defined args on your docker process
 
 ##### COPY
 
-To defined <code>COPY</code> instructions on your docker process, you can complete this property.
-
-*This property follow this validation schema :* 
-
-```
-copy : joi.array().optional().items(joi.object().optional().keys({
-    source   : joi.string().required().empty(),
-    destination : joi.string().required().empty()
-})).default([])
-```
+It's used to defined <code>COPY</code> instructions on your docker process
 
 ##### USER
 
-To defined user on your docker process, you can complete this property.
-By default we add an user <code>infra</code> with a random <code>UUID</code> between 1000 & 9999
+It's used to defined user on on your container
 
-*This property follow this validation schema :* 
-
-```
-user : joi.object().optional().keys({
-    uuid   : joi.number().optional().min(1000).max(9999).default(_.random(1000, 9999)),
-    id     : joi.string().optional().empty().default('infra')
-}).default({ id : 'infra', uuid : _.random(1000, 9999) })
-```
+*By default we add an user <code>infra</code> with a random <code>UUID</code> between 1000 & 9999*
 
 ##### CUSTOMS
 
-You can also defined custom command on your docker process. Only five command are allowed on your commands definition. These commands are :
-- <code>WORKDIR</code>
-- <code>RUN</code>
-- <code>ONBUILD</code>
-- <code>STOPSIGNAL</code>
-- <code>SHELL</code>
+It's used to defined custom command on your docker build process. 
 
-*This property follow this validation schema :* 
+*Only five command are allowed on your commands definition, please check schema definition.*
+ 
+*And for more details on each command, follow the online docker documentation :*
 
-```
-customs : joi.array().optional().items(joi.object().optional().keys({
-    comment : joi.string().required().empty(),
-    command : joi.string().required().empty().valid([
-      'WORKDIR', 'RUN', 'ONBUILD', 'STOPSIGNAL', 'SHELL'
-    ]),
-    value       : joi.string().required().empty()
-})).default([])
-```
-
-To more details on each command, follow the online docker documentation.
+ - [WORKDIR](https://docs.docker.com/engine/reference/builder/#workdir)
+ - [RUN](https://docs.docker.com/engine/reference/builder/#run)
+ - [ONBUILD](https://docs.docker.com/engine/reference/builder/#onbu)
+ - [STOPSIGNAL](https://docs.docker.com/engine/reference/builder/#stopsignal)
+ - [SHELL](https://docs.docker.com/engine/reference/builder/#shell)
 
 ##### MAINTAINERS
 
-To defined maintainers user for you app, you can use this property.
-By default the application append the current git user on maintainers list.
+It's used to defined maintainers user for you application on your container 
 
-*This property follow this validation schema :* 
-
-```
-maintainers : joi.array().optional().items(joi.string().optional().empty()).default([])
-```
+*By default the application append the current git user on maintainers list.*
 
 ##### HEALTHCHECK
 
-To defined healthcheck rules, you can use this property.
-To more details on healcheck rules, visit online docker documentaiton our schema is based on the same schema.
+It's used to defined healthcheck rules on your container
 
-*This property follow this validation schema :* 
-
-```
-healthcheck : joi.object().optional().keys({
-    interval : joi.object().optional().keys({
-      value : joi.number().required().min(0),
-      unit  : joi.string().required().empty().valid([ 's', 'm' ])
-    }).default({ value : 30, unit : 's' }),
-    timeout : joi.object().optional().keys({
-      value : joi.number().required().min(0),
-      unit  : joi.string().required().empty().valid([ 's', 'm' ])
-    }).default({ value : 30, unit : 's' }),
-    startPeriod : joi.object().optional().keys({
-      value : joi.number().required().min(0),
-      unit  : joi.string().required().empty().valid([ 's', 'm' ])
-    }).default({ value : 0, unit : 's' }),
-    retries : joi.number().optional().min(0).default(3),
-    command : joi.string().optional().empty().default('NONE')
-}).default({})
-```
+*And for more details on healthcheck rules, visit [online docker documentaiton](https://docs.docker.com/engine/reference/buil) our schema is based on the same schema.*
 
 ##### PORTS
 
-To define exposed ports, you can use this property.
-
-*This property follow this validation schema :* 
-
-```
-ports : joi.array().items(joi.object().optional().keys({
-  exposed : joi.number().required().min(0),
-  bind    : joi.number().optional().min(0)
-})).default([]),
-```
-
-<code>exposed</code> is the exposed port on the container
-<code>bind</code> is the bind port, this value is optionnal if is not bind
+It's used to define exposed ports on your container
 
 ##### VOLUMES
 
-To define exposed volumes, you can use this property.
-
-*This property follow this validation schema :* 
-
-```
-volumes     : joi.array().optional().items(joi.object().optional().keys({
-  source  : joi.string().optional().empty(),
-  target  : joi.string().required().empty(),
-  rights  : joi.string().optional().empty().valid([ 'ro', 'rw' ]).default('ro')
-}).unknown()).default([]),
-```
-
-<code>source</code> is the local directory to mount on the container
-<code>target</code> is the target directory, for binding
-<code>rights</code> is rights to apply on target directory, by default is on readonly
+It's used to define exposed volumes on your container
 
 ##### ENTRYPOINTS
 
-To define entrypoints options, you can use this property.
-By default the main entrypoint of the application is <code>[ /bin/bash', 'scripts/start-application.sh'] </code>, all extra value given if push at the end of this command.
+It's used to define entrypoints options on your container
 
-*This property follow this validation schema :*
-
-```
-entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([])
-```
+*By default the main entrypoint of the application is <code>[ /bin/bash', 'scripts/start-application.sh'] </code>, all extra value given if push at the end of this command.*
 
 ##### COMMANDS
 
-To define customs command options, you can use this property.
-By default the a list of commande is define : 
+It's used to define customs command options on your container
 
-- <code> -d </code> : is used to start app on development mode
-- <code> -s </code> : is used to start app on staging mode
-- <code> -p </code> : is used to start app on production mode
-- <code> -q </code> : is used to start app on test/quality test mode
+##### PRIVILEGED
 
-**Each of this commnand is link with a defined env object on compose and scripts process**
+It's used to define privileged rights on your container
 
-*This property follow this validation schema :* 
+##### RESSOURCES
 
-```
-entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([])
-```
+It's used to define ressources limitation on your container
+
+##### LOGGING
+
+It's used to define logging options on your container
+
+##### RESTART
+
+It's used to define restart policy options on your container
+
+##### SECURITY
+
+It's used to define security option policy on your container
+
+##### APPARMOR
+
+It's used to define `apparmor`  configuration policy on your container
 
 #### Docker Compose properties
 
-By default we build a common configuration : 
-
-```
-version: '2'
-services:
-  yocto-docker:
-    build:
-      context: ../../
-      dockerfile: ./scripts/docker/Dockerfile
-    image: yocto-docker
-    container_name: yocto-docker
-    restart: 'on-failure:5'
-    logging:
-      driver: json-file
-      options:
-        max-size: 100m
-        max-file: '7'
-    cpu_shares: 90
-    mem_limit: 2g
-    privileged: false
-    security_opt:
-      - 'apparmor:docker-default'
-      - no-new-privileges
-    environment:
-      TZ: <YOUR CURRENT TIME ZONE>
-```
-
-This configuration can be override, or extend with custom values for each defined envionements.
-
-##### How to override a define config ?
-
-It 's very simple, to override a already defined properties you must write the same path of the already defined properties. 
-For example if we wan to override the <code>TZ</code> properties on the <code>environment</code> for development, you must write this on your json config :
-
-```
-"compose": {
-    "development": {
-      "services" : {
-        "service_name" : {
-          "environment" : {
-            "TZ" : "TEST"
-          }
-        }
-      }
-    }
-```
-
-**Why service_name and not the real name of app ?** 
-
-This name is override by the app during the compose process. That's why you don't need to write it explicitly, the app do it for you.
-
-##### How to extend a define config ?
-
-Do the same thing tha override process, if your key doesn't exists, it will be create.
+All needed compose data are picked from `dockerfile`definition part and build properly for each environment. 
 
 #### Scripts properties
 
-The scripts part works exactly the same way as compose part, otherwise that you dont need to append <code>service_name</code> property in your json config.
+It's possible to add custom property for you `bash`script for each defined environment.
 
-For example : 
+Do do that, for example : 
 
 ```
 "scripts": {
-    "common": {
+    "qa": {
       "FOO" : "BAR"
     },
-    "development": {},
-    "qa": {},
-    "production": {},
+    "production": {
+      "FOO2" : "BAR2"
+    },
     "staging": {}
 }
 ```
 
 #### Extra parameters
 
-By default this docker generation process is for a node application base on pm2.
+By default this docker generation process is for a node application base on process manager `pm2` .
 To defined pm2 limitation the the <code>runtime</code> properties define on the root scope of your <code>.yocto-docker.json</code>
 
 ##### RUNTIME
@@ -399,52 +233,12 @@ To defined pm2 limitation the the <code>runtime</code> properties define on the 
 Here we define config value for pm2 process use in default entrypoint.
 It's possible to defined cpu core limit and memory limit.
 
-*This property follow this validation schema :* 
-
-```
-runtime  : joi.object().optional().keys({
-    nb_cores     : joi.number().optional().min(1).default(1),
-    memory_limit : joi.number().optional().min(2048).default(2048)
-}).default({
-    nb_cores     : 1,
-    memory_limit : 2048
-})
-```
-
 ##### PROXY
 
 If you build a docker microservice app, maybe you need to use a reverse proxy.
 For this we have implemented a basic configuration for [Traefik a modern reverve proxy](https://traefik.io).
 
 This property is defined on the root scope of your <code>.yocto-docker.json</code>
-
-*This property follow this validation schema :*
-
-```
-  proxy : joi.object().optional().keys({
-    enable              : joi.boolean().optional().default(false),
-    network             : joi.string().optional().default('bridge').empty(),
-    hosts               : joi.array().optional().items(
-      joi.string().optional().uri({ allowRelative : true }).empty()
-    ).default([]),
-    entrypointProcotol  : joi.array().optional().default([ 'http', 'https']).empty(),
-    backendProtocol     : joi.string().optional().default('http').empty(),
-    loadbalancer        : joi.number().optional().default(0).min(0),
-    sendHeader          : joi.boolean().optional().default(true),
-    priority            : joi.number().optional().default(10),
-    allowedIp           : joi.array().optional().default([])
-  }).default({
-    enable              : false,
-    network             : 'bridge',
-    hosts               : [],
-    entrypointProcotol  : [ 'http', 'https' ],
-    backendProtocol     : 'http',
-    loadbalancer        : 0,
-    sendHeader          : true,
-    priority            : 10,
-    allowedIp           : []
-  })
-```
 
 See below matching between traefik properties and our properties.
 
@@ -465,3 +259,21 @@ See below matching between traefik properties and our properties.
 For more defails on each traefik property, online documentation is available [here](https://docs.traefik.io)
 
 
+## But we talk about rules defined by specific environment, how to use it ?
+
+On each property described on definition schema, is defined a `env` property. So it's very simple juste write your env name in this property and the app will compile all defined environment.
+
+### Can we really defined all needed environment value ?
+
+Yes, by default the app expose these values : 
+
+ - development
+ - staging
+ - production
+ - qa
+ - common (default env)
+ - ci
+
+To override these value juste set the node argument `DOCKER_ENV` separate by comma, when your start your grunt tasks. For example : 
+
+`DOCKER_ENV="my_new_env, my_other_env, my_last_env" grunt docker` 

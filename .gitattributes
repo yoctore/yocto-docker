@@ -1,0 +1,8 @@
+.dockerignore export-ignore
+.gitignore export-ignore
+README.md export-ignore
+.yocto-docker.json export-ignore
+.yocto-docker-test.json export-ignore
+CHANGELOG.md export-ignore
+LICENSE-2.0.txt export-ignore
+tests export-ignore

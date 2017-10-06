@@ -16,23 +16,31 @@
     "commands" : [],
     "maintainers" : [],
     "healthcheck" : {},
-    "privileged" : false
-  },
-  "compose" : {
-    "development" : {},
-    "qa" : {},
-    "staging" : {},
-    "production" : {}
+    "privileged" : false,
+    "ressources" : {},
+    "restart" : [ { "policy" : "on-failure", "retry" : 5 } ],
+    "logging" : [ {
+      "driver" : "json-file",
+      "size"   : {
+        "value" : 100,
+        "unit"  : "m"
+      },
+      "max-file" : 3,
+      "env" : "common"
+    }],
+    "security" : [],
+    "apparmor" : [ { "rule" : "docker-default" } ]
   },
   "scripts" : {
     "common" : {},
     "development" : {},
     "qa" : {},
     "production" : {},
-    "staging" : {}
+    "staging" : {},
+    "ci" : {}
   },
   "runtime" : {},
-  "proxy": {
+  "proxy": [ {
     "enable" : false,
     "network" : "bridge",
     "hosts"   : [],
@@ -42,5 +50,5 @@
     "sendHeader" : true,
     "priority" : 10,
     "allowedIp" : []
-  }
+  } ]
 }

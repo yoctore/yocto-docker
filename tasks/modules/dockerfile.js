@@ -7,6 +7,7 @@ var homedir       = require('homedir');
 var joi           = require('joi');
 var traefik       = require('./traefik');
 var schema        = require('./schema');
+var utility       = require('./utility');
 
 /**
  * Main dockerfile factory. Process all action for dockerfile creation
@@ -86,8 +87,14 @@ Dockerfile.prototype.build = function (config, grunt) {
     // By default we need to append -d -p -s -q command on docker file because it use on compose 
     // by default for build script
     if (grunt.option('generateScripts')) {
-      // Add default command
-      config.dockerfile.commands.push('-d', '-s', '-p', '-q');
+      // Add all commad list from define configuration
+      _.each(utility.getDefinedEnv(config), function (env) {
+        // Is not common env 
+        if (env !== 'common') {
+          // Add default command
+          config.dockerfile.commands.push([ '-', _.first(env) ].join(''));
+        }
+      });
 
       // Do this array uniq
       config.dockerfile.commands = _.uniq(config.dockerfile.commands);

@@ -6,6 +6,7 @@ var yaml          = require('yamljs');
 var path          = require('path');
 var timezone      = require('moment-timezone');
 var schema        = require('./schema');
+var utility       = require('./utility');
 
 /**
  * Main dockercompose factory. Process all action for dockercompose creation
@@ -39,9 +40,240 @@ DockerCompose.prototype.prepare = function (config, grunt) {
     validate.value = false;
   }
 
+  // Build compose property
+  _.each(utility.getDefinedEnv(config), function (item) {
+    _.set(validate.value, [ 'compose', item ].join('.'), {});
+  });
+
   // Default statement
   return validate.value;
 }
+
+/**
+ * Utility method to build labels
+ *
+ * @param {String} key current env processed
+ * @param {Object} config current used config
+ * @return {Object} builded object
+ */
+DockerCompose.prototype.buildLabels = function (key, config) {
+  // Default object to return
+  var ressource  = {};
+
+  // Storage labels
+  var storageLabels = [];
+
+  // Get ressources definition
+  var ressources = _.get(config, 'dockerfile.labels');
+
+  // Parse all labels value and do needed process
+  _.each(ressources, function (item) {
+    // Only in this case, if current is matching
+    if (item.env === key) {
+      // Store item on storage array
+      storageLabels.push([ item.key, item.value ].join('='));
+    }
+  });
+
+  // Ressource is not empty ? so build the rule
+  if (!_.isEmpty(storageLabels)) {
+    // Set security_opt
+    _.set(ressource, 'labels', storageLabels);
+  }
+
+  // Default merge statement
+  return ressource;
+};
+
+/**
+ * Utility method to build ressource value for compose process for memory and cpu usage
+ *
+ * @param {String} key current env processed
+ * @param {Object} config current used config
+ * @return {Object} builded object
+ */
+DockerCompose.prototype.buildRessources = function (key, config) {
+  // Default object to return
+  var ressource  = {};
+
+  // Get ressources definition
+  var ressources = _.get(config, 'dockerfile.ressources');
+
+  // Parse all memory ressources and do needed process
+  _.each(ressources.memory, function (item) {
+    // Only in this case, if current is matching
+    if (item.env === key) {
+      // Set memory usage
+      _.set(ressource, 'mem_limit', [ item.value, item.unit ].join(''));
+      _.set(ressource, 'memswap_limit', [ (item.value + item.value) / 2, item.unit ].join(''));
+      _.set(ressource, 'mem_reservation', [ item.value / 2, item.unit ].join(''));
+    }
+  });
+
+  // Parse all cpus ressources and do needed process
+  _.each(ressources.cpus, function (item) {
+    // Only in this case, if current is matching
+    if (item.env === key) {
+      _.set(ressource, item.key, [ item.value, item.unit ].join(''));
+    }
+  });
+
+  // Default merge statement
+  return ressource;
+};
+
+/**
+ * Utility method to build ressource value for compose process for logging part
+ *
+ * @param {String} key current env processed
+ * @param {Object} config current used config
+ * @return {Object} builded object
+ */
+DockerCompose.prototype.buildLogging = function (key, config) {
+  // Default object to return
+  var ressource  = {};
+
+  // Get ressources definition
+  var ressources = _.get(config, 'dockerfile.logging');
+
+  // Parse all cpus ressources and do needed process
+  _.each(ressources, function (item) {
+    // Only in this case, if current is matching
+    if (item.env === key) {
+      _.set(ressource, 'logging.driver', item.driver);
+      _.set(ressource, 'logging.options.max-size', [ item.size.value, item.size.unit ].join(''));
+      _.set(ressource, 'logging.options.max-file', _.get(item, 'max-file'));
+
+      // Labels is empty ?
+      if (!_.isEmpty(item.labels)) {
+        _.set(ressource, 'logging.options.labels', item.labels.join(','));
+      }
+    }
+  });
+
+  // Default merge statement
+  return ressource;
+};
+
+/**
+ * Utility method to build restart policy
+ *
+ * @param {String} key current env processed
+ * @param {Object} config current used config
+ * @return {Object} builded object
+ */
+DockerCompose.prototype.buildRestartPolicy = function (key, config) {
+  // Default object to return
+  var ressource  = {};
+
+  // Get ressources definition
+  var ressources = _.get(config, 'dockerfile.restart');
+
+  // Parse all cpus ressources and do needed process
+
+  _.each(ressources, function (item) {
+    // Only in this case, if current is matching
+    if (item.env === key) {
+      _.set(ressource, 'restart',
+        item.policy === 'on-failure' ? [ item.policy, item.retry ].join(':') : item.policy);
+    }
+  });
+
+  // Default merge statement
+  return ressource;
+};
+
+/**
+ * Utility method to build security option
+ *
+ * @param {String} key current env processed
+ * @param {Object} config current used config
+ * @return {Object} builded object
+ */
+DockerCompose.prototype.buildSecurityOptions = function (key, config) {
+  // Default object to return
+  var ressource  = {};
+
+  // Defaut storage ressources
+  var storageRessource = [];
+
+  // Get ressources definition
+  var ressources = _.get(config, 'dockerfile.security');
+
+  // Only in this case we auto append security rule on list
+  if (_.get(config, 'dockerfile.privileged') === false) {
+    // Push data
+    ressources.push({
+      rule : 'no-new-privileges',
+      env  : 'common'
+    });
+  }
+
+  // Parse all cpus ressources and do needed process
+  _.each(ressources, function (item) {
+    // Only in this case, if current is matching
+    if (item.env === key) {
+      // Push item
+      storageRessource.push(item.rule);
+    }
+  });
+
+  // Parse all cpus ressources and do needed process
+  _.each(_.get(config, 'dockerfile.apparmor'), function (item) {
+    // Only in this case, if current is matching
+    if (item.env === key) {
+      // Push item
+      storageRessource.push([ 'apparmor', item.rule ].join(':'));
+    }
+  });
+
+  // Ressource is not empty ? so build the rule
+  if (!_.isEmpty(storageRessource)) {
+    // Set security_opt
+    _.set(ressource, 'security_opt', storageRessource);
+  }
+
+  // Set privileged value
+  _.set(ressource, 'privileged', _.get(config, 'dockerfile.privileged'));
+
+  // Default merge statement
+  return ressource;
+};
+
+/**
+ * Utility method to build volumes property
+ *
+ * @param {String} key current env processed
+ * @param {Object} config current used config
+ * @return {Object} builded object
+ */
+DockerCompose.prototype.buildVolumes = function (key, config) {
+  // Default object to return
+  var ressource  = {};
+
+  // Default volumes storage
+  var volumes = [];
+
+  // Process volumes configuration
+  _.each(_.get(config, 'dockerfile.volumes'), function (item) {
+    // Only if is the correct env
+    if (item.env === key) {
+      // Do normal push way
+      volumes.push(
+        _.has(item, 'source') && _.has(item, 'rights') ?
+          [ item.source, item.target, item.rights ].join(':') : item.target
+      );
+    }
+  });
+
+  // Volumes is empty ?
+  if (!_.isEmpty(volumes)) {
+    _.set(ressource, 'volumes', volumes);
+  }
+
+  // Default merge statement
+  return ressource;
+};
 
 /**
  * Build the current compose object, and store content on destination path
@@ -49,11 +281,10 @@ DockerCompose.prototype.prepare = function (config, grunt) {
  * @param {Object} config current config object to prepare for build process
  * @param {Object} grunt current grunt instance
  * @param {String} key current ressource name to process
- * @param {Object} value current overload ressrouce property to merge with the default values
  * @param {Object} destination destination path to store content
  * @return {Boolean} true in case of success, false otherwise
  */
-DockerCompose.prototype.build = function (config, grunt, key, value, destination) {
+DockerCompose.prototype.build = function (config, grunt, key, destination) {
   // Log process message
   grunt.log.debug([ 'We try to process compose for', key, 'environment' ].join(' '));
 
@@ -96,64 +327,41 @@ DockerCompose.prototype.build = function (config, grunt, key, value, destination
     item = _.omit(item, 'build.dockerfile');
   }
 
-  // Now we try to set compose process
+  // Build default labels ressources
+  var ressources  = this.buildLabels(key, config);
+
+  // Now merge system ressources
+  _.merge(ressources, this.buildRessources(key, config));
+
+  // Now merge logging ressources
+  _.merge(ressources, this.buildLogging(key, config));
+
+  // Now merge restart policy ressources
+  _.merge(ressources, this.buildRestartPolicy(key, config));
+
+  // Now merge security options
+  _.merge(ressources, this.buildSecurityOptions(key, config));
+
+  // Now merge volumes configuration
+  _.merge(ressources, this.buildVolumes(key, config));
+
+  // Now we try to set default compose process
   if (key === 'common') {
     // Now set values
-    _.set(item, 'image', _.compact([
-      value.imagePrefix || false, _.kebabCase(grunt.config('pkg.name'))
-    ]).join('/'));
+    _.set(item, 'image', [ _.kebabCase(grunt.config('pkg.name')), grunt.config('pkg.version') ].join(':'));
     _.set(item, 'container_name', _.kebabCase(grunt.config('pkg.name')));
     _.set(item, 'environment.TZ', timezone.tz.guess());
   }
 
+  // Append ressoures value
+  if (_.isObject(ressources) && !_.isEmpty(ressources)) {
+    // Merge builded ressources values 
+    _.merge(item, ressources);
+  }
+
   // Only if item is valid
   if (!_.isUndefined(item) && _.isObject(item) && !_.isEmpty(item)) {
-    // Only if is a common base file
-    if (key === 'common') {
-      // Add all defined labels
-      _.set(item, 'labels', _.flatten(_.map(_.get(config, 'dockerfile.labels'), function (label) {
-        // Default statement
-        return [ label.key, label.value ].join('=');
-      })));
-
-      // Set privileged property
-      _.set(item, 'privileged', _.get(config, 'dockerfile.privileged'));
-    }
-
-    // Default volumes storage
-    var volumes = [];
-
-    // Process volumes configuration
-    _.each(_.get(config, 'dockerfile.volumes'), function (item) {
-      // Only if is the correct env
-      if (item.env === key) {
-        if (_.has(item, 'source') && _.has(item, 'rights')) {
-          volumes.push([ item.source, item.target, item.rights ].join(':'));
-        } else {
-          volumes.push(item.target);
-        }
-      }
-    });
-
-    // Volumes is empty ?
-    if (!_.isEmpty(volumes)) {
-      _.set(item, 'volumes', volumes);
-    }
-
-    // Reassign value
     _.set(template.services, 'service_name', item);
-
-    // In normal/other case we try to merge given config from current
-    _.mergeWith(template, value, function (objValue, srcValue) {
-      // Is array ?
-      if (_.isArray(objValue)) {
-        // Refault statement
-        return objValue.concat(srcValue);
-      }
-
-      // Default statement
-      return _.get(template, 'undefined');
-    });
 
     // Remap template with current key
     _.set(template.services,

@@ -200,7 +200,7 @@ module.exports = function (grunt) {
           ].join('/'));
 
           // Do the build process
-          if (dockercompose.build(config, grunt, key, value, destination)) {
+          if (dockercompose.build(config, grunt, key, destination)) {
             // Change dockerfile property in grunt option
             grunt.option('allconfig', config);
 

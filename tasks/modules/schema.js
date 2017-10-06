@@ -8,6 +8,16 @@ var _   = require('lodash');
  * This class store all defined shema
  */
 function Schema () {
+  // Define here allowed env value and the default value
+  this.allowedEnv = _.split(process.env.DOCKER_ENV ||
+    'development,staging,production,qa,common,ci', ',');
+
+  // Define here default env
+  this.defaultEnv = 'common';
+
+  // Defined here builded env property for dynamic mapping
+  this.buildEnv = {};
+
   /**
    * Define default dockerfile schema
    */
@@ -23,7 +33,8 @@ function Schema () {
           joi.string().required().empty(),
           joi.number().required().min(0),
           joi.boolean().required()
-        )
+        ),
+        env : joi.string().optional().empty().valid(this.allowedEnv).default(this.defaultEnv)
       })).default([]),
       environments : joi.array().optional().items(joi.object().optional().keys({
         key     : joi.string().required().empty(),
@@ -83,63 +94,95 @@ function Schema () {
         bind    : joi.number().optional().min(0)
       })).default([]),
       volumes : joi.array().optional().items(joi.object().optional().keys({
-        source : joi.string().optional().empty(),
-        target : joi.string().required().empty(),
-        rights : joi.string().optional().empty().valid([ 'ro', 'rw' ]).default('ro'),
-        env    : joi.string().optional().empty().valid([
-          'development', 'staging', 'production', 'qa', 'common'
-        ]).default('common'),
+        source  : joi.string().optional().empty(),
+        target  : joi.string().required().empty(),
+        rights  : joi.string().optional().empty().valid([ 'ro', 'rw' ]).default('ro'),
+        env     : joi.string().optional().empty().valid(this.allowedEnv).default(this.defaultEnv),
         exposed : joi.boolean().optional().default(false)
       }).unknown()).default([]),
       entrypoints : joi.array().optional().items(joi.string().optional().empty()).default([]),
       commands    : joi.array().optional().items(joi.string().optional().empty()).default([]),
-      privileged  : joi.boolean().optional().default(false)
+      privileged  : joi.boolean().optional().default(false),
+      ressources  : joi.object().optional().keys({
+        memory : joi.array().optional().items(joi.object().optional().keys({
+          key   : joi.string().required().empty().valid([ 'mem_limit' ]),
+          unit  : joi.string().required().empty().valid([ 'b', 'k', 'm', 'g' ]),
+          value : joi.number().required().min(1),
+          env   : joi.string().optional().empty().valid(this.allowedEnv).default(this.defaultEnv)
+        })).default([ {
+          key   : 'mem_limit',
+          value : 4,
+          unit  : 'm',
+          env   : this.defaultEnv
+        } ]),
+        cpus : joi.array().optional().items(joi.object().optional().keys({
+          key   : joi.string().required().empty().valid([ 'cpu_shares' ]),
+          value : joi.number().required().min(1),
+          env   : joi.string().optional().empty().valid(this.allowedEnv).default(this.defaultEnv)
+        })).default([ {
+          key   : 'cpu_shares',
+          value : 90,
+          env   : this.defaultEnv
+        } ])
+      }),
+      logging : joi.array().required().min(1).items(joi.object().optional().keys({
+        driver : joi.string().required().empty().valid([ 'json-file' ]),
+        size   : joi.object().required().keys({
+          value : joi.number().required().min(1).default(100),
+          unit  : joi.string().optional().empty().valid([ 'm', 'g' ]).default('m')
+        }),
+        'max-file' : joi.number().optional().min(1).default(1),
+        labels     : joi.array().optional().items(joi.string().optional().empty()).default([]),
+        env        : joi.string().optional().empty().valid(this.allowedEnv).default(this.defaultEnv)
+      })),
+      restart : joi.array().required().min(1).items(joi.object().optional().keys({
+        policy : joi.string().optional().empty().valid([
+          'on-failure', 'unless-stopped', 'always'
+        ]).default('on-failure'),
+        retry : joi.number().optional().min(1).default(5),
+        env   : joi.string().optional().empty().valid(this.allowedEnv).default(this.defaultEnv)
+      })),
+      security : joi.array().required().min(0).items(joi.object().optional().keys({
+        rule : joi.string().required().empty(),
+        env  : joi.string().optional().empty().valid(this.allowedEnv).default(this.defaultEnv)
+      })).default([ {
+        rule : 'no-new-privileges',
+        env  : this.defaultEnv
+      } ]),
+      apparmor : joi.array().required().min(0).items(joi.object().optional().keys({
+        rule : joi.string().required().empty(),
+        env  : joi.string().optional().empty().valid(this.allowedEnv).default(this.defaultEnv)
+      })).default([ {
+        rule : 'docker-default',
+        env  : this.defaultEnv
+      } ])
     }).unknown()
   };
+
+  // Build all defined env property
+  _.each(this.allowedEnv, function (env) {
+    _.set(this.buildEnv, _.trim(env), joi.object().optional().keys({}).default({}).unknown());
+  }.bind(this));
 
   /**
    * Define default scripts schema
    */
   this.scripts = {
-    scripts : joi.object().optional().keys({
-      common      : joi.object().optional().keys({}).default({}).unknown(),
-      development : joi.object().optional().keys({}).default({}).unknown(),
-      qa          : joi.object().optional().keys({}).default({}).unknown(),
-      staging     : joi.object().optional().keys({}).default({}).unknown(),
-      production  : joi.object().optional().keys({}).default({}).unknown()
-    }).unknown().default({
-      common      : {},
-      development : {},
-      qa          : {},
-      staging     : {},
-      production  : {}
-    })
+    scripts : joi.object().optional().keys(this.buildEnv)
   };
 
   /**
    * Define default compose schema
    */
   this.compose = {
-    compose : joi.object().optional().keys({
-      common      : joi.object().optional().keys({}).default({}).unknown(),
-      development : joi.object().optional().keys({}).default({}).unknown(),
-      qa          : joi.object().optional().keys({}).default({}).unknown(),
-      staging     : joi.object().optional().keys({}).default({}).unknown(),
-      production  : joi.object().optional().keys({}).default({}).unknown()
-    }).unknown().default({
-      common      : {},
-      development : {},
-      qa          : {},
-      staging     : {},
-      production  : {}
-    })
+    compose : joi.object().optional().keys(this.buildEnv)
   };
 
   /**
    * Default proxy schema
    */
   this.proxy = {
-    proxy : joi.object().optional().keys({
+    proxy : joi.array().optional().items(joi.object().required().keys({
       enable  : joi.boolean().optional().default(false),
       network : joi.string().optional().default('bridge').empty(),
       hosts   : joi.array().optional().items(
@@ -154,8 +197,9 @@ function Schema () {
       priority           : joi.number().optional().default(10),
       allowedIp          : joi.array().optional().items(
         joi.string().optional().ip().empty()
-      ).default([])
-    }).default({
+      ).default([]),
+      env : joi.string().optional().empty().valid(this.allowedEnv).default(this.defaultEnv)
+    })).default([ {
       enable             : false,
       network            : 'bridge',
       hosts              : [],
@@ -164,8 +208,9 @@ function Schema () {
       loadbalancer       : 0,
       sendHeader         : true,
       priority           : 10,
-      allowedIp          : []
-    })
+      allowedIp          : [],
+      env                : this.defaultEnv
+    } ])
   };
 
   /**

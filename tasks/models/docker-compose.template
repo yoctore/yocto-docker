@@ -6,13 +6,4 @@ services:
       dockerfile: "./scripts/docker/Dockerfile"
     image: ""
     container_name: ""
-    restart: "on-failure:5"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "100m"
-        max-file: "7"
-    cpu_shares: 90
-    mem_limit: "2g"
     privileged: false
-    security_opt: [ "apparmor:docker-default", "no-new-privileges" ]

@@ -5,6 +5,7 @@ var joi           = require('joi');
 var path          = require('path');
 var fs            = require('fs');
 var schema        = require('./schema');
+var utility       = require('./utility');
 
 /**
  * Main dockerscripts factory. Process all action for dockerscripts creation
@@ -39,7 +40,7 @@ DockerScripts.prototype.prepare = function (config, grunt) {
   }
 
   // Default statement
-  return _.sortBy(_.map(validate.value.scripts, function (value, key) {
+  return _.omitBy(_.sortBy(_.map(validate.value.scripts, function (value, key) {
     // Default map statement
     return {
       name  : key,
@@ -48,6 +49,8 @@ DockerScripts.prototype.prepare = function (config, grunt) {
   }), function (order) {
     // Default order statement
     return [ order.name === 'common' ];
+  }), function (item) {
+    return !_.includes(utility.getDefinedEnv(config), item.name);
   });
 }
 
