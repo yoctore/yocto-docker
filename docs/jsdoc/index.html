@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>
+      Home - Documentation
+  </title>
+
+  <link href="https://www.braintreepayments.com/images/favicon-ccda0b14.png" rel="icon" type="image/png">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+  <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+
+  
+
+  
+  <script type="text/javascript" src="scripts/lodash.min.js"></script>
+  <script type="text/javascript" src="scripts/search.js"></script>
+  <link type="text/css" rel="stylesheet" href="styles/custom.css"/>
+</head>
+
+<body>
+  <svg style="display: none;">
+    <defs>
+      <symbol id="linkIcon" fill="#706d77" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 0h24v24H0z" fill="none"/>
+          <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+  <label for="nav-trigger" class="navicon-button x">
+    <div class="navicon"></div>
+  </label>
+
+  <label for="nav-trigger" class="overlay"></label>
+
+  <div class="top-nav-wrapper">
+    <ul>
+      <li  class="active" >
+        <a href="index.html">
+          
+          
+            <svg fill="#0095dd" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              <path d="M0 0h24v24H0z" fill="none"/>
+            </svg>
+          
+        </a>
+      </li>
+
+      
+
+    </ul>
+  </div>
+
+  <nav>
+    <h3 class="reference-title">
+      yocto-docker<br/>Version <span style='color:#0095dd'>v1.0.0</span>
+    </h3>
+
+    <h3>Modules</h3><ul><li id="DockerCompose-nav"><a href="module-DockerCompose.html">DockerCompose</a></li><li id="Dockerfile-nav"><a href="module-Dockerfile.html">Dockerfile</a></li><li id="DockerScripts-nav"><a href="module-DockerScripts.html">DockerScripts</a></li><li id="Schema-nav"><a href="module-Schema.html">Schema</a></li><li id="Traefik-nav"><a href="module-Traefik.html">Traefik</a></li><li id="Utility-nav"><a href="module-Utility.html">Utility</a></li></ul>
+  </nav>
+
+  <div id="main">
+    
+
+    
+      
+
+
+
+    
+
+      
+
+
+  <section class="readme">
+    <article>
+      <h2>Motivation</h2><p>All the time and for each project we need to rewrite our docker configuration files (dockerfile/compose/entrypoint), a lot of things are boring to write, so we decide to write this program.</p>
+<p><strong>This program can be use only to build a container for a node app based on pm2</strong></p>
+<h2>How to install ?</h2><pre class="prettyprint source lang-shell"><code>npm install yocto-docker --save-dev</code></pre><h2>Generality</h2><h3>Classic usage</h3><p>To use all features you need configure your Gruntfile.js like this</p>
+<pre class="prettyprint source"><code>'use strict';
+
+module.exports = function (grunt) {
+  // Project configuration.
+  grunt.initConfig({
+    // Default package
+    pkg : grunt.file.readJSON('package.json'),
+
+    // Configuration to be run (and then tested).
+    yoctodocker : {}
+  });
+
+  // Actually load this plugin's task(s).
+  grunt.loadNpmTasks('yocto-docker');
+
+  grunt.registerTask('default', [ 'yoctodocker' ]);
+};</code></pre><h3>No property defined on Gruntfile ?</h3><p>You don't need defined any property on Gruntfile, by default the <code>yocto-docker</code> tasks append need configuration.</p>
+<h3>Ok but if we dont need all feature ?</h3><p>So is this case it's possible to disable file generation for no needed process, for example, maybe you dont need compose or script generation part. Do do this just set to <code>true</code>or <code>false</code> on your <code>Gruntfile</code>  for each property like below : </p>
+<pre class="prettyprint source"><code>'use strict';
+
+module.exports = function (grunt) {
+  // Project configuration.
+  grunt.initConfig({
+    // Default package
+    pkg : grunt.file.readJSON('package.json'),
+
+    // Configuration to be run (and then tested).
+    yoctodocker : {
+      compose : true, // or false
+      scripts : true, // or false,
+      dockerfile : true // or false
+    }
+  });
+
+  // Actually load this plugin's task(s).
+  grunt.loadNpmTasks('yocto-docker');
+
+  grunt.registerTask('default', [ 'yoctodocker' ]);
+};</code></pre><h3>How this program works ?</h3><p>Use use a template config file  <code>.yocto-docker.json</code> and transform each for each build process.</p>
+<p>This program build a <code>Dockerfile</code>, all needed <code>docker-compose</code> file based on all needed environment, and all needed <code>scripts</code> based on needed environment too.</p>
+<p>The tree property dependencies is : <code>dockerfile</code> &gt; <code>compose</code> &gt; <code>scripts</code></p>
+<h3>What we need to write  ?</h3><p>The main entrypoint to edit your configuration file is to edit the <code>dockerfile</code>property part.</p>
+<p>If you need <code>compose</code>part, keep cool, data are automatically used and builded by defined environment.  </p>
+<p>And for the script part, it's the same.</p>
+<h2>So ok, how to configure your docker rules ?</h2><p><em>When you run your task for the first time, a copy of default template file <code>.yocto-docker.json</code>on your project is created. This template contains the whole needed structure of your config file.</em></p>
+<p>The first things to understand is how to to defined and write all listed property.
+To see defined schema for all defined property click <a href="https://github.com/yoctore/yocto-docker/blob/master/tasks/modules/schema.js">here</a>  </p>
+<p>Now let's go list and understand all property.</p>
+<h4>Dockerfile properties</h4><h5>FROM</h5><p>It's used to define on which package your application is based you can complete this property.</p>
+<h5>LABELS</h5><p>It's used to defined labels on your docker process.</p>
+<p><em>By default we automatically add property from your package.json (name, version, description, main, and other useful labels) on labels on your final Dockerfile, so don't rewrite it</em></p>
+<h5>ENVIRONMENTS</h5><p>It's used to environments values on your docker process</p>
+<p><em>By default your application name and version is append on final Dockerfile</em></p>
+<h5>ARGUMENT</h5><p>It's used to  defined args on your docker process</p>
+<h5>COPY</h5><p>It's used to defined <code>COPY</code> instructions on your docker process</p>
+<h5>USER</h5><p>It's used to defined user on on your container</p>
+<p><em>By default we add an user <code>infra</code> with a random <code>UUID</code> between 1000 &amp; 9999</em></p>
+<h5>CUSTOMS</h5><p>It's used to defined custom command on your docker build process. </p>
+<p><em>Only five command are allowed on your commands definition, please check schema definition.</em></p>
+<p><em>And for more details on each command, follow the online docker documentation :</em></p>
+<ul>
+<li><a href="https://docs.docker.com/engine/reference/builder/#workdir">WORKDIR</a></li>
+<li><a href="https://docs.docker.com/engine/reference/builder/#run">RUN</a></li>
+<li><a href="https://docs.docker.com/engine/reference/builder/#onbu">ONBUILD</a></li>
+<li><a href="https://docs.docker.com/engine/reference/builder/#stopsignal">STOPSIGNAL</a></li>
+<li><a href="https://docs.docker.com/engine/reference/builder/#shell">SHELL</a></li>
+</ul>
+<h5>MAINTAINERS</h5><p>It's used to defined maintainers user for you application on your container </p>
+<p><em>By default the application append the current git user on maintainers list.</em></p>
+<h5>HEALTHCHECK</h5><p>It's used to defined healthcheck rules on your container</p>
+<p><em>And for more details on healthcheck rules, visit <a href="https://docs.docker.com/engine/reference/buil">online docker documentaiton</a> our schema is based on the same schema.</em></p>
+<h5>PORTS</h5><p>It's used to define exposed ports on your container</p>
+<h5>VOLUMES</h5><p>It's used to define exposed volumes on your container</p>
+<h5>ENTRYPOINTS</h5><p>It's used to define entrypoints options on your container</p>
+<p><em>By default the main entrypoint of the application is <code>[ /bin/bash', 'scripts/start-application.sh'] </code>, all extra value given if push at the end of this command.</em></p>
+<h5>COMMANDS</h5><p>It's used to define customs command options on your container</p>
+<h5>PRIVILEGED</h5><p>It's used to define privileged rights on your container</p>
+<h5>RESSOURCES</h5><p>It's used to define ressources limitation on your container</p>
+<h5>LOGGING</h5><p>It's used to define logging options on your container</p>
+<h5>RESTART</h5><p>It's used to define restart policy options on your container</p>
+<h5>SECURITY</h5><p>It's used to define security option policy on your container</p>
+<h5>APPARMOR</h5><p>It's used to define <code>apparmor</code>  configuration policy on your container</p>
+<h4>Docker Compose properties</h4><p>All needed compose data are picked from <code>dockerfile</code>definition part and build properly for each environment. </p>
+<h4>Scripts properties</h4><p>It's possible to add custom property for you <code>bash</code>script for each defined environment.</p>
+<p>Do do that, for example : </p>
+<pre class="prettyprint source"><code>&quot;scripts&quot;: {
+    &quot;qa&quot;: {
+      &quot;FOO&quot; : &quot;BAR&quot;
+    },
+    &quot;production&quot;: {
+      &quot;FOO2&quot; : &quot;BAR2&quot;
+    },
+    &quot;staging&quot;: {}
+}</code></pre><h4>Extra parameters</h4><p>By default this docker generation process is for a node application base on process manager <code>pm2</code> .
+To defined pm2 limitation the the <code>runtime</code> properties define on the root scope of your <code>.yocto-docker.json</code></p>
+<h5>RUNTIME</h5><p>Here we define config value for pm2 process use in default entrypoint.
+It's possible to defined cpu core limit and memory limit.</p>
+<h5>PROXY</h5><p>If you build a docker microservice app, maybe you need to use a reverse proxy.
+For this we have implemented a basic configuration for <a href="https://traefik.io">Traefik a modern reverve proxy</a>.</p>
+<p>This property is defined on the root scope of your <code>.yocto-docker.json</code></p>
+<p>See below matching between traefik properties and our properties.</p>
+<table>
+<thead>
+<tr>
+<th>Namespace</th>
+<th>Proxy property</th>
+<th>Traefik property</th>
+<th>Comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>dockerfile</td>
+<td>proxy.enable</td>
+<td>traefik.enable</td>
+<td></td>
+</tr>
+<tr>
+<td>-</td>
+<td>name</td>
+<td>traefik.backend</td>
+<td></td>
+</tr>
+<tr>
+<td>dockerfile</td>
+<td>ports</td>
+<td>traefik.port</td>
+<td>We only take the first define port</td>
+</tr>
+<tr>
+<td>dockerfile</td>
+<td>proxy.backendProtocol</td>
+<td>traefik.protocol</td>
+<td></td>
+</tr>
+<tr>
+<td>dockerfile</td>
+<td>proxy.loadbalancer</td>
+<td>traefik.weight</td>
+<td></td>
+</tr>
+<tr>
+<td>dockerfile</td>
+<td>proxy.hosts</td>
+<td>traefik.frontend.rule</td>
+<td>we take all defined hosts and join it with &quot;,&quot; and prefix it with &quot;Host:&quot;</td>
+</tr>
+<tr>
+<td>dockerfile</td>
+<td>proxy.sendHeader</td>
+<td>traefik.passHostHeader</td>
+<td></td>
+</tr>
+<tr>
+<td>dockerfile</td>
+<td>proxy.priority</td>
+<td>traefik.frontend.priority</td>
+<td></td>
+</tr>
+<tr>
+<td>dockerfile</td>
+<td>proxy.entrypointProcotol</td>
+<td>traefik.frontend.entryPoints</td>
+<td>we take all defined value and join it with &quot;,&quot;</td>
+</tr>
+<tr>
+<td>dockerfile</td>
+<td>proxy.allowedIp</td>
+<td>traefik.frontend.whitelistSourceRang</td>
+<td>we take all defined value and join it with &quot;,&quot;</td>
+</tr>
+<tr>
+<td>dockerfile</td>
+<td>proxy.network</td>
+<td>traefik.docker.network</td>
+</tr>
+</tbody>
+</table>
+<p>For more defails on each traefik property, online documentation is available <a href="https://docs.traefik.io">here</a></p>
+<h2>But we talk about rules defined by specific environment, how to use it ?</h2><p>On each property described on definition schema, is defined a <code>env</code> property. So it's very simple juste write your env name in this property and the app will compile all defined environment.</p>
+<h3>Can we really defined all needed environment value ?</h3><p>Yes, by default the app expose these values : </p>
+<ul>
+<li>development</li>
+<li>staging</li>
+<li>production</li>
+<li>qa</li>
+<li>common (default env)</li>
+<li>ci</li>
+</ul>
+<p>To override these value juste set the node argument <code>DOCKER_ENV</code> separate by comma, when your start your grunt tasks. For example : </p>
+<p><code>DOCKER_ENV=&quot;my_new_env, my_other_env, my_last_env&quot; grunt docker</code> </p>
+    </article>
+  </section>
+
+
+    
+
+
+  </div>
+
+  <br class="clear">
+
+  <footer>Documentation for application <b>yocto-docker<b>.<br/>Generated at Mon Oct 01 2018 12:17:43 GMT+0400 (+04) with <a href='https://www.npmjs.com/package/yoctodoc'>yocto-doc</a><br/>Copyright Yocto © 2014 - 2018</footer>
+
+  <script src="scripts/linenumber.js"></script>
+  <script src="scripts/pagelocation.js"></script>
+
+  
+  
+</body>
+</html>

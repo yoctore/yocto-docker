@@ -17,15 +17,27 @@ module.exports = function (grunt) {
         'tasks/**/*.js',
         'Gruntfile.js'
       ]
+    },
+    yoctodoc : {
+      options : {
+        // Change your path destination
+        destination    : './docs',
+        copyExtraFiles : [ 'assets/**/*.md' ]
+      },
+
+      // Set all your file here
+      all : [ 'tasks/*/*.js' ]
     }
   });
 
   // Actually load this plugin's task(s).
   grunt.loadTasks('tasks');
   grunt.loadNpmTasks('yocto-hint');
+  grunt.loadNpmTasks('yocto-doc');
 
   // Register task
   grunt.registerTask('test', [ 'yoctodocker' ]);
   grunt.registerTask('hint', [ 'yoctohint' ]);
-  grunt.registerTask('default', [ 'hint', 'test' ]);
+  grunt.registerTask('doc', [ 'yoctodoc' ]);
+  grunt.registerTask('default', [ 'hint', 'test', 'doc' ]);
 };

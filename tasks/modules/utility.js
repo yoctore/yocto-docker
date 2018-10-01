@@ -3,7 +3,9 @@
 var _ = require('lodash');
 
 /**
- * Main Utility class.
+ * Main Utility class, to provide utility tools on main module
+ * 
+ * @module Utility
  */
 function Utility () {
   // Path lists

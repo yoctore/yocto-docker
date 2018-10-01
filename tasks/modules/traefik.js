@@ -4,6 +4,8 @@ var _ = require('lodash');
 
 /**
  * Main module to build traefik property
+ * 
+ * @module Traefik
  */
 function Traefik () {
   // Default traefik prefix for default build process

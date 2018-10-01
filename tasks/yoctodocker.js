@@ -4,7 +4,6 @@ var _             = require('lodash');
 var hooker        = require('hooker');
 var chalk         = require('chalk');
 var path          = require('path');
-var semver        = require('semver');
 var timegrunt     = require('time-grunt');
 var treeify       = require('treeify');
 var inquirer      = require('inquirer');
@@ -92,90 +91,92 @@ module.exports = function (grunt) {
   });
 
   // Create my main task to process dockerfile creation
-  grunt.registerTask('yoctodocker:build-dockerfile', 'Main dockerfile creation process', function () {
+  grunt.registerTask('yoctodocker:build-dockerfile',
+    'Main dockerfile creation process', function () {
     // Create an async process
-    var done = this.async();
+      var done = this.async();
 
-    // Do the main process on a try catch process
+      // Do the main process on a try catch process
 
-    try {
+      try {
       // Build .dockerignore file
-      var dockerignore = [ process.cwd(), '.dockerignore' ].join('/');
-
-      // Docker ignore exits ?
-      if (!grunt.file.exists(dockerignore)) {
-        // LLog a message before create dockerignore file
-        grunt.log.warn('.dockerignore doesn\'t exists. We try to create it.');
-
-        // Write the dockerignore template
-        grunt.file.write(dockerignore,
-          fs.readFileSync([ __dirname, 'models/dockerignore.template' ].join('/')));
+        var dockerignore = [ process.cwd(), '.dockerignore' ].join('/');
 
         // Docker ignore exits ?
         if (!grunt.file.exists(dockerignore)) {
+        // LLog a message before create dockerignore file
+          grunt.log.warn('.dockerignore doesn\'t exists. We try to create it.');
+
+          // Write the dockerignore template
+          grunt.file.write(dockerignore,
+            fs.readFileSync([ __dirname, 'models/dockerignore.template' ].join('/')));
+
+          // Docker ignore exits ?
+          if (!grunt.file.exists(dockerignore)) {
           // Throw an exception
-          throw new Error('Cannot create .dockerignore file.');
-        } else {
+            throw new Error('Cannot create .dockerignore file.');
+          } else {
           // Log a success message
-          grunt.log.ok('Create .dockerignore was succeed.');
+            grunt.log.ok('Create .dockerignore was succeed.');
+          }
         }
-      }
 
-      // Get config file
-      var config    = JSON.parse(fs.readFileSync(grunt.option('dconfig')));
+        // Get config file
+        var config    = JSON.parse(fs.readFileSync(grunt.option('dconfig')));
 
-      // Get builded config
-      config = dockerfile.build(config, grunt);
+        // Get builded config
+        config = dockerfile.build(config, grunt);
 
-      // Config is invalid
-      if (config === false) {
+        // Config is invalid
+        if (config === false) {
         // Throw an exception
-        throw new Error('Cannot process build of dockerfile. See error below.');
-      }
+          throw new Error('Cannot process build of dockerfile. See error below.');
+        }
 
-      // Get template file for dockerfile
-      var template  = fs.readFileSync([
-        __dirname, 'models/Dockerfile.template'
-      ].join('/')).toString();
+        // Get template file for dockerfile
+        var template  = fs.readFileSync([
+          __dirname, 'models/Dockerfile.template'
+        ].join('/')).toString();
 
-      // Set dockerfile on grunt option to use on next process
-      grunt.option('allconfig', config);
+        // Set dockerfile on grunt option to use on next process
+        grunt.option('allconfig', config);
 
-      // Store destination path
-      var destination = path.resolve([ process.cwd(), 'scripts', 'docker', 'Dockerfile' ].join('/'));
+        // Store destination path
+        var destination = path.resolve([
+          process.cwd(), 'scripts', 'docker', 'Dockerfile' ].join('/'));
 
-      // Generate is enabled ?
-      if (grunt.option('generateDockerfile')) {
+        // Generate is enabled ?
+        if (grunt.option('generateDockerfile')) {
         // Write content
-        grunt.file.write(destination, _.template(template)(config));
+          grunt.file.write(destination, _.template(template)(config));
 
-        // File exists && file is not empty ?
-        var state = grunt.file.exists(destination) &&
+          // File exists && file is not empty ?
+          var state = grunt.file.exists(destination) &&
           !_.isEmpty(fs.readFileSync(destination).toString());
 
-        // Log success message
-        grunt.log.ok([
-          'Dockerfile was', state ? '' : 'not', 'properly created, and was store to', destination
-        ].join(' '));
+          // Log success message
+          grunt.log.ok([
+            'Dockerfile was', state ? '' : 'not', 'properly created, and was store to', destination
+          ].join(' '));
 
-        // Store dockerfile path to storage process
-        storeForTree('dockerfile', destination, state);
-      } else {
-        grunt.log.warn([
-          'Feature build-dockerfile is disabled.',
-          'skipping the file generation process' ].join(' '));
-      }
+          // Store dockerfile path to storage process
+          storeForTree('dockerfile', destination, state);
+        } else {
+          grunt.log.warn([
+            'Feature build-dockerfile is disabled.',
+            'skipping the file generation process' ].join(' '));
+        }
 
-      // Call default callback
-      done();
-    } catch (e) {
+        // Call default callback
+        done();
+      } catch (e) {
       // Log error
-      grunt.log.warn([ 'Cannot continue because an error occured :', e.message ].join(' '));
+        grunt.log.warn([ 'Cannot continue because an error occured :', e.message ].join(' '));
 
-      // Call default callback
-      done(false);
-    }
-  });
+        // Call default callback
+        done(false);
+      }
+    });
 
   // Create my main task to process dockerfile creation
   grunt.registerTask('yoctodocker:build-compose', 'Main compose creation process', function () {
@@ -271,8 +272,9 @@ module.exports = function (grunt) {
           // If (value.name !== 'common)
 
           // Prepare destination path
-          destination = path.resolve([ process.cwd(), 'scripts', 'docker',
-            value.name !== 'common' ? [ 'build-compose', [ '-', value.name, '.sh' ].join('') ].join('') :
+          destination = path.resolve([
+            process.cwd(), 'scripts', 'docker', value.name !== 'common' ?
+              [ 'build-compose', [ '-', value.name, '.sh' ].join('') ].join('') :
               'start-application.sh'
           ].join('/'));
 
@@ -389,16 +391,17 @@ module.exports = function (grunt) {
               ].join(''));
             } else {
               // Update version values
-              grunt.option('nodeversion', _.first(_.compact(_.map(JSON.parse(body), function (item) {
+              grunt.option('nodeversion',
+                _.first(_.compact(_.map(JSON.parse(body), function (item) {
                 // In case of item is not an LTS version
-                if (_.isBoolean(item.lts)) {
+                  if (_.isBoolean(item.lts)) {
                   // Break the map process
-                  return false;
-                }
+                    return false;
+                  }
 
-                // Default statement
-                return item.version.replace('v', '')
-              }))));
+                  // Default statement
+                  return item.version.replace('v', '')
+                }))));
             }
 
             // Get content
@@ -428,17 +431,4 @@ module.exports = function (grunt) {
       build.call(this, this.data, this.target);
     }
   });
-
-  // Node version is lower than last node LTS version ?
-  if (semver.lt(process.version, '6.0.0')) {
-    // Logging message
-    grunt.log.ok([ 'Changing cwd directory to load modules because version of node is',
-      process.version ].join(' '));
-
-    // Change path to yocto-hint modules
-    process.chdir(path.normalize([ __dirname, '..' ].join('/')));
-  }
-
-  // Go to the initial path
-  process.chdir(cwd);
 };
